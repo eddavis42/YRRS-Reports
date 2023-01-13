@@ -1,0 +1,333 @@
+---
+title: |
+  ![](YRRS Logo.jpg){width=5in}    
+    New Mexico Youth Risk and Resiliency Survey (YRRS)
+subtitle: |
+  | Middle School Survey Results
+  | `r params$counties` County
+  | Grades 6-8, `r params$year`
+author: |        
+  | New Mexico Department of Health
+  | New Mexico Public Education Department
+  | UNM Prevention Research Center
+  
+output: pdf_document
+
+params:
+  counties: "Valencia"
+  cnty: "c_valencia"
+  year: "2019"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(tidyverse)
+library(haven)
+library(readxl)
+library(crosstable)
+library(survey)
+library(kableExtra)
+library(expss)
+library(labelled)
+library(cowplot)
+library(dplyr)
+library(magrittr)
+library(showtext)
+
+font_add_google("Poppins", "Poppins")
+font_add_google("Prata", "Prata")
+showtext_auto()
+
+#Middle School data with survey designs of same name, don't get them confused!
+yrbss <- read_dta("N:/PRC/HEART/Youth Risk/2019 YRRS Materials - all/DATA/Middle School/nmMS2019YRRS_nm_v3.dta")
+
+yrrs_cnty <- svydesign(id=~psu, strata=~strata, weights=~fwt_cnty, data=yrbss)
+options(survey.lonely.psu = "adjust")
+
+yrrs_nm <- svydesign(id=~psu, strata=~strata, weights=~fwt_str, data=yrbss)
+options(survey.lonely.psu = "adjust")
+
+yrbss_ms_cnty <- subset(yrbss, cntytxt=={params$counties})
+
+yrrs_cnty_only <- svydesign(id=~psu, strata=~strata, weights=~fwt_cnty, data=yrbss_ms_cnty)
+options(survey.lonely.psu = "adjust")
+
+
+yrbss <- apply_labels(yrbss,
+                            nssi = "Non-suicidal self-injury",
+                            sad = "Felt sad or hopeless",
+                            consider = "Seriously considered suicide",
+                            plan = "Made a suicide plan",
+                            suiatt = "Attempted suicide",
+                            suiinj = "Injured in a suicide attempt",
+                            helmet = "Rarely or never wore a bike helmet",
+                            seatbelt = "Rarely or never wore a seatbelt",
+                            rodedui = "Ever rode with a drinking driver")
+
+```
+
+```{r}
+#Function to plot bargraph with desired variables
+#Pass the function a list of the desired variable names, which must be labelled, followed by the name of the graph
+
+barplot1ms <- function(varlist, graph_title) {
+  
+  
+  County <- c(rep("NM", length(varlist)), rep({params$counties}, length(varlist)))
+  County <- factor(County, levels = c({params$counties}, "NM"))
+  Indicator <- c(rep(0, 2*length(varlist)))
+  Value <- c(rep(0, 2*length(varlist)))
+  ci_l <- c(rep(0, 2*length(varlist)))
+  ci_u <- c(rep(0, 2*length(varlist)))
+  
+  i=1
+  for(i in 1:length(varlist)){
+    varname <- varlist[i]
+    Indicator[i] <- var_label(yrbss[varname])
+    Indicator[i + length(varlist)] <- var_label(yrbss[varname])
+    
+    Value[i] <- (svymean(yrbss[varname], yrrs_nm, na.rm=T))[1]
+    ci_l[i] <- (confint(svymean(yrbss[varname], yrrs_nm, na.rm=T)))[1]
+    ci_u[i] <- (confint(svymean(yrbss[varname], yrrs_nm, na.rm=T)))[2]
+    
+    Value[i + length(varlist)] <- (svyby(as.formula( paste0("~", varname)), ~cntytxt=={params$counties}, yrrs_cnty, svyciprop, vartype ="ci", na.rm=T))[2,2]
+    ci_l[i + length(varlist)] <- (svyby(as.formula( paste0("~", varname)), ~cntytxt=={params$counties}, yrrs_cnty, svyciprop, vartype ="ci", na.rm=T))[2,3]
+    ci_u[i + length(varlist)] <- (svyby(as.formula( paste0("~", varname)), ~cntytxt=={params$counties}, yrrs_cnty, svyciprop, vartype ="ci", na.rm=T))[2,4]
+  }
+  
+  Indicator <- factor(Indicator, levels = var_label(yrbss[varlist]))
+  Data_frame_values <- data.frame(County, Indicator, Value, ci_l, ci_u)
+  
+  
+  new_plot <- ggplot(Data_frame_values, aes(y = Indicator, x = Value, fill = County)) + 
+  geom_col(position="dodge") + theme(legend.position="top", legend.title = element_blank()) + 
+    
+  theme(text = element_text(family = "Poppins"), panel.background = element_blank(), panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+    
+  geom_text(aes(group=County, label= scales::percent(Value, accuracy=0.1),x=ci_u), hjust=-.1, color="black",
+            position = position_dodge(.9), size=3) + 
+  labs(x = "Percent (%)", y = (element_blank()), title = {{graph_title}}, subtitle = paste("NM &",{params$counties},"County\nGrades 6-8, ",{params$year})) +
+    
+   geom_errorbar(aes(y=Indicator, xmin=ci_l, xmax=ci_u), width=.2, position= position_dodge(.9), 
+                 alpha=0.7)+
+    scale_fill_manual(values = c("#B196C6", "#F8B35C"), guide = guide_legend(reverse = TRUE)) +
+    scale_y_discrete(labels = str_wrap(Indicator, width = 15))
+  
+  #Limit the width of the graph to 50% if all values are below 50%
+  greater_than_50 <- FALSE
+  for (p in Value){
+    
+    if (p > 0.5) {
+      new_plot <- new_plot + scale_x_continuous(labels = scales::percent_format(scale = 100),
+                     limits = c(0,1), breaks = seq(0, 1, .25))
+      greater_than_50 <- TRUE
+      break
+    }
+  }
+  if (greater_than_50 ==FALSE){
+      new_plot <- new_plot + scale_x_continuous(labels = scales::percent_format(scale = 100),
+                     limits = c(0,.5), breaks = seq(0, 1, .25))
+    }
+  
+  return(new_plot)
+}
+
+
+
+#To use the function, pass it a list of the variables to graph together, in order from the bottom up
+#barplot1(c("qn34", "qn33","qn32","qn31","qn30","qn29"), "Past Year Mental Health Indicators" )
+
+
+#barplot1ms(c("helmet", "seatbelt","weapon","fight","bully","cbully"), "Personal Safety" )
+barplot1ms(c("cbully", "bully","fight","weapon","seatbelt","helmet"), "Personal Safety" )
+
+
+```
+
+```{r}
+###For simplicity, instead of making all new functions, adding optional parameters to regular barplot_grade function to specify if middle school level
+#Just call the dataset yrbss instead of specifying it's hs or ms so the code works either way
+barplot_grade <- function(varlist, graph_title, grouped = FALSE, ms = FALSE) {
+  
+  if(ms==TRUE){
+    Grade <- c(rep("6th", length(varlist)), rep("7th", length(varlist)), rep("8th", length(varlist)))
+  Grade <- factor(Grade, levels = c("6th","7th", "8th"))
+  Indicator <- c(rep(0, 3*length(varlist)))
+  Value <- c(rep(0, 3*length(varlist)))
+  ci_l <- c(rep(0, 3*length(varlist)))
+  ci_u <- c(rep(0, 3*length(varlist)))
+
+  
+  i=1
+  for(i in 1:length(varlist)){
+    varname <- varlist[i]
+    Indicator[i] <- var_label(yrbss[varname])
+    Indicator[i + length(varlist)] <- var_label(yrbss[varname])
+    Indicator[i + 2*(length(varlist))] <- var_label(yrbss[varname])
+    
+    CITable <- svyby(as.formula( paste0("~", varname)),~{cntytxt=={params$counties}}+grade, yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm.all=T)
+    
+
+    for(j in 1:3){
+     Value[i + ((j-1)*length(varlist))] <- CITable[j*2,3]
+      ci_l[i + ((j-1)*length(varlist))] <- CITable[j*2,4]
+      ci_u[i + ((j-1)*length(varlist))] <- CITable[j*2,5]
+    }
+  }
+  }
+  
+  else{
+  Grade <- c(rep("9th", length(varlist)), rep("10th", length(varlist)), rep("11th", length(varlist)), rep("12th", length(varlist)))
+  Grade <- factor(Grade, levels = c("9th","10th", "11th", "12th"))
+  Indicator <- c(rep(0, 4*length(varlist)))
+  Value <- c(rep(0, 4*length(varlist)))
+  ci_l <- c(rep(0, 4*length(varlist)))
+  ci_u <- c(rep(0, 4*length(varlist)))
+
+  
+  i=1
+  for(i in 1:length(varlist)){
+    varname <- varlist[i]
+    Indicator[i] <- var_label(yrbss[varname])
+    Indicator[i + length(varlist)] <- var_label(yrbss[varname])
+    Indicator[i + 2*(length(varlist))] <- var_label(yrbss[varname])
+    Indicator[i + 3*(length(varlist))] <- var_label(yrbss[varname])
+    
+    CITable <- svyby(as.formula( paste0("~", varname)),~{cntytxt=={params$counties}}+grade, yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm.all=T)
+    
+
+    for(j in 1:4){
+     Value[i + ((j-1)*length(varlist))] <- CITable[j*2,3]
+      ci_l[i + ((j-1)*length(varlist))] <- CITable[j*2,4]
+      ci_u[i + ((j-1)*length(varlist))] <- CITable[j*2,5]
+    }
+  }
+  }
+  
+  
+
+  Indicator <- factor(Indicator, levels = var_label(yrbss[varlist]))
+  
+  Data_frame_values_Grade <- data.frame(Grade, Indicator, Value, ci_l, ci_u)
+
+  grade_plot <- ggplot(Data_frame_values_Grade, aes(x = Indicator, y = Value, fill = Grade)) + 
+  geom_col(position="dodge") + theme(legend.position="top", legend.title = element_blank()) + 
+  scale_fill_manual(values = c("#F7D6D3", "#EFA1A2", "#E56461", "#D93328")) +
+  theme(legend.position="top", legend.title = element_blank(),legend.justification = "right"
+          , plot.subtitle = element_text(face="italic")
+          , panel.background = element_blank(), panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),  axis.line = element_line(colour = "black"), plot.title.position = "plot")
+      
+  if(grouped==TRUE){
+      grade_plot <- grade_plot + geom_text(aes(group=Grade, label= scales::percent(Value, accuracy=0.1),y=ci_u), vjust= -1, color="black", position = position_dodge(.9), size=5)
+    }
+  if(grouped==FALSE){
+      grade_plot <- grade_plot + geom_text(aes(group=Grade, label= scales::percent(Value, accuracy=0.1),y=ci_u), vjust= -1, color="black", position = position_dodge(.9), size=3)
+  }
+      
+    grade_plot <- grade_plot + labs(x = (element_blank()), y = "Percent (%)", subtitle = paste("By Grade, ", {params$counties}, " County")) +
+      
+    geom_errorbar(aes(x=Indicator, ymin=ci_l, ymax=ci_u), width=.1, position= position_dodge(.9), alpha=0.7) + 
+    scale_y_continuous(labels = scales::percent_format(scale = 100), limits = c(0,1), breaks = seq(0, 1, .25))
+    
+    #Setting max length for labels depending on how many variables being used    
+    if(length(varlist) > 4){
+      grade_plot <- grade_plot + scale_x_discrete(labels = str_wrap(Indicator, width = 15))
+    }
+    else{
+      grade_plot <- grade_plot + scale_x_discrete(labels = str_wrap(Indicator, width = 20))
+    }
+  
+  #grade_plot <- grade_plot + scale_x_discrete(labels = str_wrap(Indicator, width = 15))
+  return(grade_plot)
+
+}
+
+
+
+barplot_group <- function(varlist, graph_title, ms=FALSE){
+  county_plot <- barplot_county_2(varlist,graph_title, grouped = TRUE)
+  county_plot <- county_plot + theme(text = element_text(size=21, inherit.blank=TRUE))
+  
+  sex_plot <- barplot_sex(varlist, graph_title, grouped = TRUE)
+  sex_plot <- sex_plot + theme(text = element_text(size=21, inherit.blank=TRUE))
+
+  if(ms==TRUE){
+    grade_plot <- barplot_grade(varlist, graph_title, grouped = TRUE, ms=TRUE)
+  }
+  else{
+    grade_plot <- barplot_grade(varlist, graph_title, grouped = TRUE)
+  }
+  
+  grade_plot <- grade_plot + theme(text = element_text(size=21, inherit.blank=TRUE))
+
+  return(ggpubr::ggarrange(county_plot, sex_plot, grade_plot, ncol = 1, align = "v"))
+  
+  
+}
+```
+
+
+```{r}
+#Function for graph splitting by grade for middle schools
+barplotgradems <- function(varlist, graph_title) {
+  
+  #Making a different table of values for graph split by sex
+  
+  Grade <- c(rep("6th", length(varlist)), rep("7th", length(varlist)), rep("8th", length(varlist)))
+  Grade <- factor(Grade, levels = c("6th","7th", "8th"))
+  Indicator <- c(rep(0, 3*length(varlist)))
+  Value <- c(rep(0, 3*length(varlist)))
+  ci_l <- c(rep(0, 3*length(varlist)))
+  ci_u <- c(rep(0, 3*length(varlist)))
+
+  
+  i=1
+  for(i in 1:length(varlist)){
+    varname <- varlist[i]
+    Indicator[i] <- var_label(yrbss[varname])
+    Indicator[i + length(varlist)] <- var_label(yrbss[varname])
+    Indicator[i + 2*(length(varlist))] <- var_label(yrbss[varname])
+    #Indicator[i + 3*(length(varlist))] <- var_label(yrbss[varname])
+    
+    
+    #Correct degrees of freedom for calculating CI's
+    grade_df <- (((summary(svytable(as.formula(paste0("~grade+",varname)), design = yrrs_cnty_only)))
+  $statistic)$parameter)[2]
+    
+    CITable <- svyby(as.formula( paste0("~", varname)),~{cntytxt=={params$counties}}+grade, yrrs_cnty, svyciprop, vartype ="ci", df = grade_df, na.rm.all=T)
+    
+
+    for(j in 1:3){
+     Value[i + ((j-1)*length(varlist))] <- CITable[j*2,3]
+      ci_l[i + ((j-1)*length(varlist))] <- CITable[j*2,4]
+      ci_u[i + ((j-1)*length(varlist))] <- CITable[j*2,5]
+    }
+  }
+  
+
+  Indicator <- factor(Indicator, levels = var_label(yrbss[varlist]))
+  
+  
+  Data_frame_values_Grade <- data.frame(Grade, Indicator, Value, ci_l, ci_u)
+
+    grade_plot <- ggplot(Data_frame_values_Grade, aes(x = Indicator, y = Value, fill = Grade)) + 
+  geom_col(position="dodge") + theme(legend.position="top", legend.title = element_blank()) + 
+   scale_fill_manual(values = c("#BBE1F8", "#75CAF2", "#21B6EA")) +
+    theme(panel.background = element_blank(), panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),  axis.line = element_line(colour = "black")) +
+      
+  geom_text(aes(group=Grade, label= scales::percent(Value, accuracy=0.1),y=ci_u), vjust= -1, color="black",
+            position = position_dodge(.9), size=3) + 
+  labs(x = (element_blank()), y = "Percent (%)", title = paste("By Grade, ", {params$counties}, " County")) +
+      
+      geom_errorbar(aes(x=Indicator, ymin=ci_l, ymax=ci_u), width=.1, position= position_dodge(.9), alpha=0.7) + 
+    scale_y_continuous(labels = scales::percent_format(scale = 100), limits = c(0,1), breaks = seq(0, 1, .25)) + scale_x_discrete(labels = str_wrap(Indicator, width = 16))
+  
+  
+  return(grade_plot)
+
+}
+
+barplotgradems(c("helmet", "seatbelt", "rodedui"), "Personal Safety")
+```
+

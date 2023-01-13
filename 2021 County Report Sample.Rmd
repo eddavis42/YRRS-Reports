@@ -1,0 +1,1640 @@
+---
+title: |
+  ![](YRRS Logo.jpg){width=6in}    
+    New Mexico Youth Risk and Resiliency Survey (YRRS)
+subtitle: |
+  | High School Survey Results
+  | `r params$counties` County
+  | Grades 9-12, 2021
+author: |        
+  | New Mexico Department of Health
+  | New Mexico Public Education Department
+  | UNM Prevention Research Center
+header-includes:
+- \usepackage{fancyhdr}
+- \pagestyle{fancy}
+- \fancyhead[L]{New Mexico `r params$year` YRRS}
+- \fancyhead[R]{Grades 9 - 12}
+- \renewcommand{\headrulewidth}{0pt}
+- \usepackage{booktabs}
+
+output: 
+  pdf_document
+
+params:
+  counties: "Valencia"
+  cnty: "c_valencia"
+  regions: 3
+  region: "Metro Public Health Region"
+  year: "2021"
+  
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE, echo=FALSE, warning=FALSE, cache.lazy = FALSE, cache.comments=FALSE)
+```
+
+```{r, echo=FALSE, message = FALSE, warning = FALSE, include=FALSE}
+#options(kableExtra.latex.load_packages = FALSE)
+library(ggplot2)
+library(tidyverse)
+library(haven)
+library(readxl)
+library(crosstable)
+library(survey)
+library(kableExtra)
+library(expss)
+library(labelled)
+library(cowplot)
+library(plyr)
+library(dplyr)
+library(magrittr)
+library(scales)
+library(ggpubr)
+
+options(digits = 7)
+countystr <- paste0({params$counties}," County")
+
+
+yrbss_hs_NM <- read_dta("YRRS/County & District Reports/Datasets/nmHS2021YRRS_nm_v3_ed.dta")
+#Survey designs
+
+yrrs_cnty <- svydesign(id=~psu, strata=~strata, weights=~fwt_cnty, data=yrbss_hs_NM)
+options(survey.lonely.psu = "adjust")
+
+yrrs_nm <- svydesign(id=~psu, strata=~strata, weights=~fwt_str, data=yrbss_hs_NM)
+options(survey.lonely.psu = "adjust")
+
+#Stata includes PSUs in survey design from other counties but same strata values. Getting the degrees of freedom allows us to replicate Stata
+#Get the strata values in county of interest
+strata_to_use <- unique(yrbss_hs_NM$strata[(yrbss_hs_NM$cntytxt=={params$counties})])
+#Get the number of PSUs contained in the strata
+number_of_PSUs <- length(unique(yrbss_hs_NM$psu[(yrbss_hs_NM$strata %in% strata_to_use)]))
+Design_df <- number_of_PSUs - length(strata_to_use)
+
+#Importing data sets from previous years
+
+year1 <- read_dta("YRRS/County & District Reports/Datasets/nmHS2011yrrs_NM_v2.dta")
+year1<-subset(year1, fwtlvl_cnty!="")
+yrrs_cnty_1 <- svydesign(id=~psu, strata=~stratum, weights=~fwtlvl_cnty, data=year1)
+
+
+year2 <- read_dta("/Users/edddavis/Documents/YRRS/County & District Reports/Datasets/nmHS2013YRRS_nm_v3.dta")
+year2<-subset(year2, fwt_cnty!="")
+yrrs_cnty_2 <- svydesign(id=~psu, strata=~strata, weights=~fwt_cnty, data=year2)
+
+
+year3 <- read_dta("/Users/edddavis/Documents/YRRS/County & District Reports/Datasets/nmHS2015YRRS_nm_v6.dta")
+yrrs_cnty_3 <- svydesign(id=~psu, strata=~strata, weights=~fwt_cnty, data=year3)
+
+
+year4 <- read_dta("/Users/edddavis/Documents/YRRS/County & District Reports/Datasets/nmHS2017YRRS_nm_v6_dg.dta")
+yrrs_cnty_4 <- svydesign(id=~psu, strata=~strata, weights=~fwt_cnty, data=year4)
+
+
+year5 <- read_dta("/Users/edddavis/Documents/YRRS/County & District Reports/Datasets/nmHS2019YRRS_nm_v2_dg.dta")
+yrrs_cnty_5 <- svydesign(id=~psu, strata=~strata, weights=~fwt_cnty, data=year5)
+options(survey.lonely.psu = "adjust")
+
+#Changing variable names in old datasets to match newer ones
+year1 <- year1 %>% dplyr::rename(
+  #New name = old name
+  rodedui = rodedrnk,
+  dui = drivedrnk,
+  sexforce = forcesex,
+  qntob5 = anytob,
+  fiveaday = qnfrvg,
+  qnsoda1 = soda,
+  pe1 = pe
+)
+
+year2 <- year2 %>% dplyr::rename(
+  #New name = old name
+  sexforce = forcesex,
+  qntob5 = anytob,
+  syn30 = synmari,
+  qnbk7day = bkft,
+  fiveaday = qnfrvg,
+  qnsoda1 = soda,
+  nobk = qnnobkft
+)
+#Reconfigure study designs after making changes
+yrrs_cnty_1 <- svydesign(id=~psu, strata=~stratum, weights=~fwtlvl_cnty, data=year1)
+yrrs_cnty_2 <- svydesign(id=~psu, strata=~strata, weights=~fwt_cnty, data=year2)
+
+
+
+# New Labels for some of our variables
+yrbss_hs_NM <- apply_labels(yrbss_hs_NM,
+                            nssi = "Non-suicidal self-injury",
+                            sad = "Felt sad or hopeless",
+                            consider = "Seriously considered suicide",
+                            plan = "Made a suicide plan",
+                            suiatt = "Attempted suicide",
+                            suiinj = "Injured in a suicide attempt",
+                            helmet = "Rarely or never wore a bicycle helmet",
+                            seatbelt = "Rarely or never wore a seatbelt",
+                            rodedui = "Rode with a drinking driver",
+                            skipsafe = "Skipped school because of safety concerns",
+                            fight = "In a physical fight",
+                            dui = "Drinking and driving",
+                            maridrv = "Marijuana use and driving",
+                            text = "Texting and driving",
+                            fightscl = "In a physical fight on school property",
+                            weapscl = "Carried weapon on school property",
+                            gun12m = "Carried a gun (not for sport or hunting)",
+                            gunhome = "Gun in home",
+                            hurtdate = "Physical dating violence",
+                            sexviol = "Sexually assaulted (Forced to do sexual things)",
+                            sexforce = "Ever forced to have sexual intercourse",
+                            bully = "Bullied on school property",
+                            cbully = "Electronically bullied",
+                            racetease = "Teased because of race/ethnicity",
+                            drnk10 = "High intensity binge drinking",
+                            rxpain30 = "Improper pain medication use",
+                            qndlype = "Daily PE in school",
+                            y21screen3 = "Screen time three or more hours daily",
+                            fiveaday = "Five servings of fruit or vegetables daily",
+                            qnsoda1 = "Daily soda consumption",
+                            sex4 = "Had sexual intercourse with four or more people",
+                            homeless = "Unstable housing",
+                            her30 = "Heroin",
+                            coca30 = "Cocaine",
+                            meth30 = "Methamphetamine",
+                            inh30 = "Inhalants",
+                            syn30 = "Synthetic marijuana",
+                            mari30 = "Marijuana",
+                            vapedly = "Daily e-cig use",
+                            condom = "Used a condom at last sexual intercourse",
+                            sexdrg = "Used alcohol or drugs before sexual intercourse", 
+                            nocondom = "Did not use a condom at last sexual intercourse",
+                            y21bcp = "Birth control pills", 
+                            y21qnshparg = "Shot, Patch, or Birth Control Ring", 
+                            y21bccondom = "Condoms",
+                            y21bcwithd = "Withdrawal or some other method",
+                            y21qnbcnone = "No birth control method",
+                            nobk = "Did not eat breakfast in last 7 days",
+                            concussion = "Had a sports-related concussion",
+                            dental = "Saw a dentist in the last 12 months",
+                            physdis = "Physical disabilities or long-term health problems",
+                            hlfnoneng = "Spoke a non-English language at home at least half the time", 
+                            liveoutus = "Ever lived outside the US",
+                            unaccmin = "Kicked out or ran away in the last 30 days",
+                            gamble = "Gambled at least once in the last 12 months",
+                            sleep8 = "8 or more hours of sleep per night",
+                            skipmo = "Skipped school at least once in the last 30 days", 
+                            nvrskip = "Never skipped school in the last 30 days",
+                            covmental = "Frequent mental distress", 
+                            covlostjob = "Parent or adult in house lost their job",
+                            covhungry = "Went hungry some of the time or more often", 
+                            covschool = "School work was more difficult",
+                            qnfrcig = "Smoked on 20 or more of the last 30 days",
+                            cigar = "Cigar", 
+                            hookah = "Hookah",
+                            spittob = "Spit tobacco",
+                            qntob5 = "Any tobacco use",
+                            pedlths = "Less than high school",
+                            pedhs = "Completed high school", 
+                            pedcoll = "Completed college or professional school",
+                            alcgave = "Someone Gave it to me",
+                            r3phobby = "Outside of my home and school, I am involved in art, sports, or a hobby",
+                            r3pconted = "I plan to go to college or some other school after high school",
+                            r3fhelp = "I have a friend about my own age who helps me when I'm having a hard time",
+                            r3fcare = "I have a friend about my own age who really cares about me",
+                            r3cgroup = "Outside of my home and school, I am a part of group activities",
+                            r3cgoodjob = "Outside of my home and school, there is an adult who tells me when I do a good job",
+                            r3ccare = "Outside of my home and school, there is an adult who really cares about me",
+                            r3sgroup = "At school I am involved in sports, clubs, or other extra-curricular activities ",
+                            r3srule = "In my school, there are clear rules about what students can and cannot do",
+                            r3ssuccess = "At my school, there is a teacher or some other adult who believes that I will be a success",
+                            r3slisten = "At my school, there is a teacher or some other adult who listens to me",
+                            r3hknow = "When I am not at home, one of my parents/guardians knows where I am and who I am with",
+                            r3hsuccess = "In my home, a parent or some other adult believes that I will be a success",
+                            r3hintscl = "In my home, a parent or some other adult is interested in my school work",
+                            qn106 = "A parent or other adult is interested in my school work",
+                            qn107 = "A parent or other adult believes I'll be a success",
+                            qn114 = "A parent or guardian knows where I am and who I'm with when I'm not home",
+                            qn108 = "A teacher or other adult listens to me", 
+                            qn109 = "A teacher or other adult believes I'll be a success", 
+                            qn115 = "There are clear rules for my behaviors", 
+                            qn117 = "I am involved in extra-curricular activities",
+                            qn110 = "There is an adult who really cares about me",
+                            qn111 = "There is an adult who tells me when I do a good job", 
+                            qn118 = "I am involved in group activities",
+                            qn112 = "I have a friend who really cares about me", 
+                            qn113 = "I have a friend who helps me when I'm having a hard time", 
+                            qn116 = "I plan to go to college or other school after high school", 
+                            qn119 = "I am involved in music, art, literature, sports, or a hobby")
+
+#Defining lists of years for trend function
+years <- c("2011", "2013", "2015", "2017", "2019", "2021")
+year_survey <- c("yrrs_cnty_1", "yrrs_cnty_2", "yrrs_cnty_3", "yrrs_cnty_4", "yrrs_cnty_5", "yrrs_cnty")
+datasets <- list(year1, year2, year3, year4, year5, yrbss_hs_NM)
+
+#length(yrbss_hs_NM$cntytxt[(yrbss_hs_NM$cntytxt =={params$counties})])
+
+```
+
+
+
+
+```{r, echo=FALSE, message = FALSE, warning = FALSE}
+#Saving functions
+
+barplot_county <- function(varlist, graph_title) {
+  
+  
+  County <- c(rep("NM", length(varlist)), rep({params$counties}, length(varlist)))
+  County <- factor(County, levels = c({params$counties}, "NM"))
+  Indicator <- c(rep(0, 2*length(varlist)))
+  Value <- c(rep(0, 2*length(varlist)))
+  ci_l <- c(rep(0, 2*length(varlist)))
+  ci_u <- c(rep(0, 2*length(varlist)))
+  
+  i=1
+  for(i in 1:length(varlist)){
+    varname <- varlist[i]
+    Indicator[i] <- var_label(yrbss_hs_NM[varname])
+    Indicator[i + length(varlist)] <- var_label(yrbss_hs_NM[varname])
+    
+    #Get values for state level data
+    Value[i] <- (svymean(yrbss_hs_NM[varname], yrrs_nm, na.rm=T))[1]
+    ci_l[i] <- (confint(svymean(yrbss_hs_NM[varname], yrrs_nm, na.rm=T)))[1]
+    ci_u[i] <- (confint(svymean(yrbss_hs_NM[varname], yrrs_nm, na.rm=T)))[2]
+    #Get values for county level data
+    Value[i + length(varlist)] <- (svyby(as.formula( paste0("~", varname)), ~cntytxt=={params$counties}, yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T))[2,2]
+    ci_l[i + length(varlist)] <- (svyby(as.formula( paste0("~", varname)), ~cntytxt=={params$counties}, yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T))[2,3]
+    ci_u[i + length(varlist)] <- (svyby(as.formula( paste0("~", varname)), ~cntytxt=={params$counties}, yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T))[2,4]
+  }
+  
+  Indicator <- factor(Indicator, levels = var_label(yrbss_hs_NM[varlist]))
+  Data_frame_values <- data.frame(County, Indicator, Value, ci_l, ci_u)
+  
+  new_plot <- ggplot(Data_frame_values, aes(y = Indicator, x = Value, fill = County)) + 
+  geom_col(position="dodge") + theme(legend.position="top", legend.title = element_blank(), legend.key.size = unit(0.25, 'cm'), plot.subtitle = element_text(face="italic"), panel.background = element_blank(), panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"), plot.title.position = "plot")
+    
+  new_plot <- new_plot + geom_text(aes(group=County, label= scales::percent(Value, accuracy=0.1),x=ci_u), hjust=-.1, color="black", position = position_dodge(.9), size=4) + 
+    
+  labs(x = "Percent (%)", y = (element_blank()), subtitle = paste({{graph_title}}, "\nNew Mexico &",{params$counties},"County\nGrades 9-12, ",{params$year})) +
+    
+  geom_errorbar(aes(y=Indicator, xmin=ci_l, xmax=ci_u), width=.2, position= position_dodge(.9), alpha=0.7)
+  
+  new_plot <- new_plot + scale_fill_manual(values = c("#F68C43", "#753F98"), guide = guide_legend(reverse = TRUE)) + scale_y_discrete(labels = str_wrap(Indicator, width = 15))
+  
+  #Limit the width of the graph to 50% if all values are below 50%
+  greater_than_50 <- FALSE
+  for (p in Value){
+    
+    if (p > 0.5) {
+      new_plot <- new_plot + scale_x_continuous(labels = scales::percent_format(scale = 100),
+                     limits = c(0,1), breaks = seq(0, 1, .25))
+      greater_than_50 <- TRUE
+      break
+    }
+  }
+  if (greater_than_50 ==FALSE){
+      new_plot <- new_plot + scale_x_continuous(labels = scales::percent_format(scale = 100),
+                     limits = c(0,.5), breaks = seq(0, 1, .25))
+    }
+  
+  return(new_plot)
+}
+
+
+trendplot <- function(varlist, graph_title=NULL, graph_subtitle=NULL, grouped=FALSE){
+  
+  Indicator <- c(rep(0, length(years)*length(varlist)))
+  Value <- c(rep(0, length(years)*length(varlist)))
+  survey <- c(rep(year_survey, length(varlist)))
+  
+  #year (as opposed to years) is list to be made into part of the table, not to be confused with years
+  year <- c(rep(years, length(varlist)))
+  
+  i=1
+  for(i in 1:length(varlist)){
+    varname <- varlist[i]
+  
+    j=1
+    for(j in 1:length(years)){
+      currentyear = datasets[j]
+      Indicator[j + (i-1)*length(years)] <- var_label(yrbss_hs_NM[varname])[[1]]
+    
+      if(varname %in% colnames(datasets[[j]])){
+        Value[j + (i-1)*length(years)] <- (svyby(as.formula( paste0("~", varname)), ~cntytxt=={params$counties}, as.formula(noquote(year_survey[j])), svyciprop, vartype ="ci", na.rm=T))[2,2]
+        
+        # other_table[i,j] <- signif((svyby(as.formula( paste0("~", varname)), ~cntytxt=={params$counties}, as.formula(noquote(year_survey[j])), svyciprop, vartype ="ci", na.rm=T))[2,2], 3)*100
+        }
+      else{
+        Value[j + (i-1)*length(years)] <- NA
+        }
+      }
+
+  }
+
+
+  Data_frame_values <- data.frame(year, Indicator, Value)
+
+  newplot <- ggplot(Data_frame_values, aes(x=year, y=Value, color=Indicator, group=Indicator)) 
+
+  newplot <- newplot + geom_line(position = 'dodge', stat = 'identity', size=1) + theme_bw()
+
+  newplot <- newplot + theme(
+  legend.position="top", legend.justification = "right",legend.text.align = 0
+  , plot.subtitle = element_text(face="italic"),
+  #axis.text.x = element_text(hjust=1),
+  #legend.direction = "horizontal", 
+  legend.title = element_blank(), legend.background = element_blank(), panel.background = element_blank(), panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"), plot.title.position = "plot")
+
+  newplot <- newplot + geom_point(size=2.5, aes(shape=Indicator))
+  newplot <- newplot + scale_y_continuous(labels = scales::percent_format(scale = 100),
+                     limits = c(0,1), breaks = seq(0, 1, .25))
+
+  #Reverse legend and wrap
+  if(length(varlist) <= 3){
+    newplot <- newplot + guides(color=guide_legend(nrow=1, byrow=TRUE, reverse=TRUE), shape = guide_legend(nrow=1, byrow=TRUE, reverse=TRUE))
+  
+  }
+  if(length(varlist) >= 4){
+  newplot <- newplot + guides(color=guide_legend(nrow=2, byrow=TRUE, reverse=TRUE), shape = guide_legend(nrow=2, byrow=TRUE, reverse=TRUE))
+  }
+  #Plot title and subtitle
+  newplot <- newplot + labs(x = (element_blank()), y = "Percent (%)", title = {{graph_title}}, subtitle = paste({{graph_subtitle}}, "\nby Year, ",{params$counties},"County\nGrades 9-12, ",years[1], "-",{params$year}))
+  
+  #Text table
+  gg.table <- ggplot(Data_frame_values, aes(x = year, y = Indicator, label = ifelse(!is.na(Value), format(round(Value*100, 1), nsmall=1), NA))) +
+              geom_text(hjust=1, nudge_x=.2) +
+              theme_bw() +
+              scale_x_discrete(breaks = year) +
+              scale_y_discrete(position = "left") +
+              theme_minimal() +
+              theme(
+                  axis.title.y = element_blank(),
+                  axis.title.x = element_blank(),
+                  axis.text.x = element_blank(),
+                  panel.grid.major = element_blank(),
+                  panel.grid.minor = element_blank(),
+                  legend.position="none")
+  
+  #Adjust wording size
+  if(grouped==TRUE){
+      new_plot <- new_plot + theme(text = element_text(size=16, inherit.blank=TRUE))
+      #gg.table <- gg.table + theme(text = element_text(size=16, inherit.blank=TRUE))
+    }
+  
+
+  plot_and_years <- ggarrange(newplot, gg.table, ncol = 1, heights = c(4, 1), align = "v")
+  return(plot_and_years)
+
+}
+
+barplot_county_2 <- function(varlist, graph_title, grouped = FALSE) {
+  
+  
+  County <- c(rep("NM", length(varlist)), rep({params$counties}, length(varlist)))
+  County <- factor(County, levels = c("NM",{params$counties}))
+  Indicator <- c(rep(0, 2*length(varlist)))
+  Value <- c(rep(0, 2*length(varlist)))
+  ci_l <- c(rep(0, 2*length(varlist)))
+  ci_u <- c(rep(0, 2*length(varlist)))
+
+  
+  i=1
+  for(i in 1:length(varlist)){
+    varname <- varlist[i]
+    Indicator[i] <- var_label(yrbss_hs_NM[varname])
+    Indicator[i + length(varlist)] <- var_label(yrbss_hs_NM[varname])
+    
+        Value[i] <- (svymean(yrbss_hs_NM[varname], yrrs_nm, na.rm=T))[1]
+    ci_l[i] <- (confint(svymean(yrbss_hs_NM[varname], yrrs_nm, na.rm=T)))[1]
+    ci_u[i] <- (confint(svymean(yrbss_hs_NM[varname], yrrs_nm, na.rm=T)))[2]
+    Value[i + length(varlist)] <- (svyby(as.formula( paste0("~", varname)), ~cntytxt=={params$counties}, yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T))[2,2]
+    ci_l[i + length(varlist)] <- (svyby(as.formula( paste0("~", varname)), ~cntytxt=={params$counties}, yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T))[2,3]
+    ci_u[i + length(varlist)] <- (svyby(as.formula( paste0("~", varname)), ~cntytxt=={params$counties}, yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T))[2,4]
+  }
+  
+  Indicator <- factor(Indicator, levels = var_label(yrbss_hs_NM[varlist]))
+  Data_frame_values <- data.frame(County, Indicator, Value, ci_l, ci_u)
+  
+  
+  new_plot <- ggplot(Data_frame_values, aes(x = Indicator, y = Value, fill = County)) + 
+  geom_col(position="dodge") + 
+  theme(
+        #legend.key.size = unit(0.25, 'cm'),
+        legend.position="top", legend.title = element_blank(),legend.justification = "right"
+        , plot.subtitle = element_text(face="italic")
+        , panel.background = element_blank(), panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"), plot.title.position = "plot") 
+    
+    if(grouped==TRUE){
+      new_plot <- new_plot + geom_text(aes(group=County, label= scales::percent(Value, accuracy=0.1),y=ci_u), vjust= -1, color="black", position = position_dodge(.9), size=5)
+    }
+  if(grouped==FALSE){
+          new_plot <- new_plot + geom_text(aes(group=County, label= scales::percent(Value, accuracy=0.1),y=ci_u), vjust= -1, color="black", position = position_dodge(.9), size=3)
+  }
+  
+  
+  new_plot <- new_plot + labs(x = (element_blank()), y = "Percent (%)", subtitle = paste({{graph_title}}, "\nNew Mexico &",{params$counties},"County\nGrades 9-12, ",{params$year})) +
+    
+    geom_errorbar(aes(x=Indicator, ymin=ci_l, ymax=ci_u), width=.1, position= position_dodge(.9), alpha=0.7) + 
+    scale_y_continuous(labels = scales::percent_format(scale = 100), limits = c(0,1), breaks = seq(0, 1, .25))+
+    scale_fill_manual(values = c("#753F98", "#F68C43"))
+  
+  #Setting max length for labels depending on how many variables being used
+  if(length(varlist) > 4){
+    new_plot <- new_plot + scale_x_discrete(labels = str_wrap(Indicator, width = 15))
+    }
+  else{
+    new_plot <- new_plot + scale_x_discrete(labels = str_wrap(Indicator, width = 20))
+    }
+  
+  
+  return(new_plot)
+}
+
+
+barplot_sex <- function(varlist, graph_title, grouped = FALSE) {
+  
+  #Making a different table of values for graph split by sex
+  
+  Sex <- c(rep("Female", length(varlist)), rep("Male", length(varlist)))
+  Sex <- factor(Sex, levels = c("Female", "Male"))
+  Indicator <- c(rep(0, 2*length(varlist)))
+  Value <- c(rep(0, 2*length(varlist)))
+  ci_l <- c(rep(0, 2*length(varlist)))
+  ci_u <- c(rep(0, 2*length(varlist)))
+
+  
+  i=1
+  for(i in 1:length(varlist)){
+    varname <- varlist[i]
+    Indicator[i] <- var_label(yrbss_hs_NM[varname])
+    Indicator[i + length(varlist)] <- var_label(yrbss_hs_NM[varname])
+    
+    Value[i] <- (svyby(as.formula( paste0("~", varname)), ~(cntytxt=={params$counties} & sex==1), yrrs_cnty, svyciprop, vartype ="ci", na.rm=T))[2,2]
+  
+    ci_l[i] <- (svyby(as.formula( paste0("~", varname)), ~(cntytxt=={params$counties} & sex==1), yrrs_cnty, svyciprop, vartype ="ci", df=Design_df, na.rm=T))[2,3]
+    ci_u[i] <- (svyby(as.formula( paste0("~", varname)), ~(cntytxt=={params$counties} & sex==1), yrrs_cnty, svyciprop, vartype ="ci", df=Design_df, na.rm=T))[2,4]
+    
+    Value[i + length(varlist)] <- (svyby(as.formula( paste0("~", varname)), ~(cntytxt=={params$counties} & sex==2), yrrs_cnty, svyciprop, vartype ="ci", na.rm=T))[2,2]
+    ci_l[i + length(varlist)] <- (svyby(as.formula( paste0("~", varname)), ~(cntytxt=={params$counties} & sex==2),  yrrs_cnty, svyciprop, vartype ="ci", df=Design_df, na.rm=T))[2,3]
+    ci_u[i + length(varlist)] <- (svyby(as.formula( paste0("~", varname)), ~(cntytxt=={params$counties} & sex==2),  yrrs_cnty, svyciprop, vartype ="ci", df=Design_df, na.rm=T))[2,4]
+  }
+  
+  Indicator <- factor(Indicator, levels = var_label(yrbss_hs_NM[varlist]))
+
+  Data_frame_values_Sex <- data.frame(Sex, Indicator, Value, ci_l, ci_u)
+
+  sex_plot <- ggplot(Data_frame_values_Sex, aes(x = Indicator, y = Value, fill = Sex)) + 
+  geom_col(position="dodge") + 
+      
+      theme(legend.position="top", legend.title = element_blank(),legend.justification = "right"
+            , plot.subtitle = element_text(face="italic")
+            ,  panel.background = element_blank(), panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"), plot.title.position = "plot")
+    
+  if(grouped==TRUE){
+      sex_plot <- sex_plot + geom_text(aes(group=Sex, label= scales::percent(Value, accuracy=0.1),y=ci_u), vjust= -1, color="black", position = position_dodge(.9), size=5)
+    }
+  if(grouped==FALSE){
+      sex_plot <- sex_plot + geom_text(aes(group=Sex, label= scales::percent(Value, accuracy=0.1),y=ci_u), vjust= -1, color="black", position = position_dodge(.9), size=3)
+  }
+
+  
+  sex_plot <- sex_plot + labs(x = (element_blank()), y = "Percent (%)", subtitle = paste("By Sex, ", {params$counties}, " County")) +
+      
+      geom_errorbar(aes(x=Indicator, ymin=ci_l, ymax=ci_u), width=.1, position= position_dodge(.9), alpha=0.7) + 
+    scale_y_continuous(labels = scales::percent_format(scale = 100), limits = c(0,1), breaks = seq(0, 1, .25)) +
+    scale_fill_manual(values = c("#82C341", "#4995D1"))
+    
+  #Setting max length for labels depending on how many variables being used
+  if(length(varlist) > 4){
+    sex_plot <- sex_plot + scale_x_discrete(labels = str_wrap(Indicator, width = 15))
+    }
+  else{
+    sex_plot <- sex_plot + scale_x_discrete(labels = str_wrap(Indicator, width = 20))
+    }    
+  
+  
+  return(sex_plot)
+}
+
+###barplot grade function
+barplot_grade <- function(varlist, graph_title, grouped = FALSE) {
+  
+  #Making a different table of values for graph split by sex
+  
+  Grade <- c(rep("9th", length(varlist)), rep("10th", length(varlist)), rep("11th", length(varlist)), rep("12th", length(varlist)))
+  Grade <- factor(Grade, levels = c("9th","10th", "11th", "12th"))
+  Indicator <- c(rep(0, 4*length(varlist)))
+  Value <- c(rep(0, 4*length(varlist)))
+  ci_l <- c(rep(0, 4*length(varlist)))
+  ci_u <- c(rep(0, 4*length(varlist)))
+
+  
+  i=1
+  for(i in 1:length(varlist)){
+    varname <- varlist[i]
+    Indicator[i] <- var_label(yrbss_hs_NM[varname])
+    Indicator[i + length(varlist)] <- var_label(yrbss_hs_NM[varname])
+    Indicator[i + 2*(length(varlist))] <- var_label(yrbss_hs_NM[varname])
+    Indicator[i + 3*(length(varlist))] <- var_label(yrbss_hs_NM[varname])
+    
+    CITable <- svyby(as.formula( paste0("~", varname)),~{cntytxt=={params$counties}}+grade, yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm.all=T)
+    
+
+    for(j in 1:4){
+     Value[i + ((j-1)*length(varlist))] <- CITable[j*2,3]
+      ci_l[i + ((j-1)*length(varlist))] <- CITable[j*2,4]
+      ci_u[i + ((j-1)*length(varlist))] <- CITable[j*2,5]
+    }
+  }
+  
+
+  Indicator <- factor(Indicator, levels = var_label(yrbss_hs_NM[varlist]))
+  
+  Data_frame_values_Grade <- data.frame(Grade, Indicator, Value, ci_l, ci_u)
+
+  grade_plot <- ggplot(Data_frame_values_Grade, aes(x = Indicator, y = Value, fill = Grade)) + 
+  geom_col(position="dodge") + theme(legend.position="top", legend.title = element_blank()) + 
+  scale_fill_manual(values = c("#F7D6D3", "#EFA1A2", "#E56461", "#D93328")) +
+  theme(legend.position="top", legend.title = element_blank(),legend.justification = "right"
+          #legend.key.size = unit(0.25, 'cm')
+          # , text = element_text(family = "Poppins", size=10)
+          # , plot.subtitle = element_text(family = "Poppins",face="italic", size=10, lineheight=1.25)
+          , plot.subtitle = element_text(face="italic")
+          , panel.background = element_blank(), panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),  axis.line = element_line(colour = "black"), plot.title.position = "plot")
+      
+  if(grouped==TRUE){
+      grade_plot <- grade_plot + geom_text(aes(group=Grade, label= scales::percent(Value, accuracy=0.1),y=ci_u), vjust= -1, color="black", position = position_dodge(.9), size=5)
+    }
+  if(grouped==FALSE){
+      grade_plot <- grade_plot + geom_text(aes(group=Grade, label= scales::percent(Value, accuracy=0.1),y=ci_u), vjust= -1, color="black", position = position_dodge(.9), size=3)
+  }
+      
+    grade_plot <- grade_plot + labs(x = (element_blank()), y = "Percent (%)", subtitle = paste("By Grade, ", {params$counties}, " County")) +
+      
+    geom_errorbar(aes(x=Indicator, ymin=ci_l, ymax=ci_u), width=.1, position= position_dodge(.9), alpha=0.7) + 
+    scale_y_continuous(labels = scales::percent_format(scale = 100), limits = c(0,1), breaks = seq(0, 1, .25))
+    
+    #Setting max length for labels depending on how many variables being used    
+    if(length(varlist) > 4){
+      grade_plot <- grade_plot + scale_x_discrete(labels = str_wrap(Indicator, width = 15))
+    }
+    else{
+      grade_plot <- grade_plot + scale_x_discrete(labels = str_wrap(Indicator, width = 20))
+    }
+  
+  #grade_plot <- grade_plot + scale_x_discrete(labels = str_wrap(Indicator, width = 15))
+  return(grade_plot)
+
+}
+
+
+
+barplot_group <- function(varlist, graph_title){
+  county_plot <- barplot_county_2(varlist,graph_title, grouped = TRUE)
+  county_plot <- county_plot + theme(text = element_text(size=21, inherit.blank=TRUE))
+  
+  sex_plot <- barplot_sex(varlist, graph_title, grouped = TRUE)
+  sex_plot <- sex_plot + theme(text = element_text(size=21, inherit.blank=TRUE))
+
+  grade_plot <- barplot_grade(varlist, graph_title, grouped = TRUE)
+  grade_plot <- grade_plot + theme(text = element_text(size=21, inherit.blank=TRUE))
+
+  return(ggpubr::ggarrange(county_plot, sex_plot, grade_plot, ncol = 1, align = "v"))
+  
+  
+}
+
+#risk_props <- c(1,2,3)
+
+barplot_resiliency <- function(risk_factor, Resiliency_factors_list, level){
+  
+  
+  Resiliency_values <- data.frame(matrix(ncol = length(Resiliency_factors_list), nrow=3))
+  colnames(Resiliency_values) <- Resiliency_factors_list
+  rownames(Resiliency_values) <- c("Not true at all", "A little bit or pretty much true", "Very much true")
+  
+  
+  #Populate data frame with values from dataset
+  
+  if(level == "region"){
+    j = 1
+    for (i in Resiliency_factors_list){
+    
+          #for region level
+          Res_Table <- svyby(as.formula( paste0("~", risk_factor)), as.formula(paste0("~{region=={params$regions}}+", {{i}})), yrrs_cnty, svyciprop, vartype ="ci", na.rm.all=T)
+          Resiliency_values[1:3, {{i}}] <- Res_Table[(Res_Table[1]==TRUE),3]
+          colnames(Resiliency_values)[j] <- var_label(yrbss_hs_NM[{{i}}])
+          j <- j+1
+    }
+  }
+  
+  if(level == "county"){
+    j = 1
+    for (i in Resiliency_factors_list){
+    
+          #for county level
+          Res_Table <- svyby(as.formula( paste0("~", risk_factor)), as.formula(paste0("~{cntytxt=={params$counties}}+", {{i}})), yrrs_cnty, svyciprop, vartype ="ci", na.rm.all=T)
+          Resiliency_values[1:3, {{i}}] <- Res_Table[(Res_Table[1]==TRUE),3]
+          colnames(Resiliency_values)[j] <- var_label(yrbss_hs_NM[{{i}}])
+          j <- j+1
+    }  
+  }
+  
+            
+  #Melt new dataframe into long form and add labels to prepare for visualization          
+  Resiliency_values[,"Resiliency"] <- row.names(Resiliency_values)          
+  Melted_Resiliency_values <- data.frame(melt(Resiliency_values))
+  Melted_Resiliency_values$Resiliency <- factor(Melted_Resiliency_values$Resiliency, levels = c("Very much true", "A little bit or pretty much true", "Not true at all"))
+  Melted_Resiliency_values$variable <- factor(Melted_Resiliency_values$variable, levels = colnames(Resiliency_values))
+  
+  
+  #Create the visualization          
+  newplot <- ggplot(Melted_Resiliency_values, aes(x=value, y=variable, fill=Resiliency)) + 
+      geom_bar(position="dodge", stat="identity")
+  
+  newplot <- newplot + theme(legend.position="top", legend.title = element_blank(), plot.subtitle = element_text(face="italic"), panel.background = element_blank(), panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"), plot.title.position = "plot", text = element_text(size=20))
+  
+     #Percentages next to bars 
+    newplot <- newplot + geom_text(aes(group=Resiliency, label= scales::percent(value, accuracy=0.1)), hjust=-.1, color="black", position = position_dodge(.9), size=5)
+  
+  
+    #Add title and subtitle
+    if(level == "county"){
+      newplot <- newplot + labs(x = "Percent (%)", y = (element_blank()), title = var_label(yrbss_hs_NM[risk_factor]), subtitle = paste0("by Selected Resiliency Factors\n",{params$counties},"County\nGrades 9-12, ",{params$year}))
+    }  
+    if(level == "region"){
+      newplot <- newplot + labs(x = "Percent (%)", y = (element_blank()), title = var_label(yrbss_hs_NM[risk_factor]), subtitle = paste0("by Selected Resiliency Factors\n",{params$region},"\nGrades 9-12, ",{params$year}))
+     }
+      
+    #Wrap text, reverse legend and change colors
+     newplot <- newplot + scale_y_discrete(labels = str_wrap(colnames(Resiliency_values), width = 45)) + scale_fill_manual(values = c("#aabad7", "#4f81bd", "#10253f"), guide = guide_legend(reverse = TRUE))
+     
+     newplot <- newplot + scale_x_continuous(labels = scales::percent_format(scale = 100),
+                        limits = c(0,1), breaks = seq(0, 1, .25))
+    
+    # #Limit the width of the graph to 50% if all values are below 50%
+    # greater_than_50 <- FALSE
+    # for (p in Melted_Resiliency_values$value){
+    #   
+    #   if (p > 0.5) {
+    #     newplot <- newplot + scale_x_continuous(labels = scales::percent_format(scale = 100),
+    #                    limits = c(0,1), breaks = seq(0, 1, .25))
+    #     greater_than_50 <- TRUE
+    #     break
+    #   }
+    # }
+    # if (greater_than_50 ==FALSE){
+    #     newplot <- newplot + scale_x_continuous(labels = scales::percent_format(scale = 100),
+    #                    limits = c(0,.5), breaks = seq(0, 1, .25))
+    # }
+    
+    #Global variables for use in text
+    risk_props <<- Resiliency_values[1:3,14]%>% signif(3) *100
+    
+    return(newplot)
+}
+
+
+```
+
+\newpage
+
+## Suggested citation: {.unlisted .unnumbered}
+
+New Mexico Youth Risk and Resiliency Survey: High School Survey Results 2021, `r {params$counties}` County. (2021). Epidemiology and Response Division, New Mexico Department of Health; School and Family Support Bureau, New Mexico Public Education Department;and University of New Mexico Prevention Research Center. https://youthrisk.org/publications/county-reports/.
+
+&nbsp;    
+&nbsp;    
+&nbsp;  
+This publication was produced by the New Mexico Department of Health (NM DOH), the Public Education Department (NM PED), and the University of New Mexico Prevention Research Center. The NM YRRS receives support from the Centers for Disease Control and Prevention in cooperation with the NM PED through Grant number 6NU87PS0043 14-05-01. For information about administration and methods used in implementation of the New Mexico Youth Risk and Resiliency Survey (NM YRRS), see www.youthrisk.org.
+
+
+\newpage
+
+### ACKNOWLEDGEMENTS {.unlisted .unnumbered}
+This report is a product of the NM Youth Risk and Resiliency Survey (YRRS), a project that characterizes risk behaviors and resiliency/protective factors among New Mexico youth. The YRRS is a joint project of the New Mexico Department of Health (NMDOH) and the New Mexico Public Education Department (PED), with support and technical assistance from the University of New Mexico Prevention Research Center (UNM PRC); the Office of Substance Abuse Prevention, Behavioral Health Services Division (OSAP-BHSD); the Albuquerque Area Southwest Tribal Epidemiology Center (AASTEC); and the U.S. Centers for Disease Control and Prevention, Division of Adolescent and School Health (CDC-DASH). Gratitude is extended to the individuals listed below for their contribution toward developing and producing this report. (Individuals who served on the NM-YRRS 2019 Steering Committee are identified by an asterisk (*).)
+
+### NEW MEXICO DEPARTMENT OF HEALTH {.unlisted .unnumbered}
+Billy J. Jimenez, Acting Cabinet Secretary  
+Christine Ross, MD, MPH, State Epidemiologist and Division Director, Emergency and Response Division  
+Toby Rosenblatt, MPA, Bureau Chief, Injury and Behavioral Epidemiology Bureau  
+Dan Green, MPH, Survey Epidemiologist, Injury and Behavioral Epidemiology Bureau*  
+Hayley Peterson, MPH, Drug Overdose Morbidity Epidemiologist , Injury and Behavioral Epidemiology Bureau*  
+James Padilla, MS, Tobacco Epidemiologist, Tobacco Use Prevention and Control Program*  
+James Farmer, MPH, Director, Office of School and Adolescent Health*  
+
+### NEW MEXICO PUBLIC EDUCATION DEPARTMENT {.unlisted .unnumbered}
+Ryan Stewart, Ed.L.D., Secretary of Education  
+Katarina Sandoval, Ed.M., Deputy Secretary of Academic Engagement and Student Success  
+Greg Frostad, Director, Safe and Healthy Schools   
+Anne Marlow-Geter, Safe and Healthy Schools Deputy Director
+
+### UNIVERSITY OF NEW MEXICO DIVISION FOR PREVENTION AND POPULATION SCIENCES, HEALTH EVALUATION AND RESEARCH TEAM  {.unlisted .unnumbered}
+Theresa H Cruz, PhD, Research Associate Professor*  
+Courtney FitzGerald, MSSW, LMSW, MPH, Associate Scientist III*  
+Robyn Viera, MA, Scientific Research Manager
+
+### ALBUQUERQUE AREA SOUTHWEST TRIBAL EPIDEMIOLOGY CENTER {.unlisted .unnumbered} 
+Kevin English, DrPh, MPH, DirectorCarolyn Parshall, MPH, Epidemiologist*  
+Judith Espinoza, MPH, Epidemiologist*  
+Ophelia Spencer, Tribal Survey Coordinator  
+Ali Anderson, BS, CDC Public Health Associate*
+
+### NEW MEXICO HUMAN SERVICES DEPARTMENT, BEHAVIORAL HEALTH SERVICES DIVISION {.unlisted .unnumbered} 
+Karen Cheman, MPH, Prevention Operations Manager, Office of Substance Abuse Prevention*  
+
+&nbsp;  
+The NM Department of Health receives support for the NM YRRS from the Centers for Disease Control and Prevention in cooperation through Grant number  5 NU87PS004314-03-00.
+
+\newpage  
+&nbsp;                           
+\newpage  
+\tableofcontents
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+yrbss_hs_cnty <- subset(yrbss_hs_NM, cntytxt=={params$counties})
+#Response rates
+#Number of students in current county who responded
+
+
+Profiles <- c(" ", "Girls", "Boys", "American Indian or Alaska Native", "Asian", "Black or African-American", "Hispanic", "Native Hawaiian or Pacific Islander ", "White", "9th", "10th", "11th", "12th", "Other")
+
+# Totals <- c(total_responses, girl_r, boy_r, AIAN_r, Asian_r, AA_r, Hisp_r, NHOPI_r, WH_r, nine_r, ten_r, eleven_r, twelve_r, other_r)
+Totals <- c(length(yrbss_hs_cnty$cnty)
+            #Girls/boys
+            , length(na.omit(yrbss_hs_cnty$sex[(yrbss_hs_cnty$sex==1)]))
+            , length(na.omit(yrbss_hs_cnty$sex[(yrbss_hs_cnty$sex==2)]))
+            #Race/ethnicity
+            , length(na.omit(yrbss_hs_cnty$ai[(yrbss_hs_cnty$ai==1)]))
+            , length(na.omit(yrbss_hs_cnty$as[(yrbss_hs_cnty$as==1)]))
+            , length(na.omit(yrbss_hs_cnty$aa[(yrbss_hs_cnty$aa==1)]))
+            , length(na.omit(yrbss_hs_cnty$hisp[(yrbss_hs_cnty$hisp==1)]))
+            , length(na.omit(yrbss_hs_cnty$pi[(yrbss_hs_cnty$pi==1)]))
+            , length(na.omit(yrbss_hs_cnty$wh[(yrbss_hs_cnty$wh==1)]))
+            #Grade level
+            , length(na.omit(yrbss_hs_cnty$grade[(yrbss_hs_cnty$grade==1)]))
+            , length(na.omit(yrbss_hs_cnty$grade[(yrbss_hs_cnty$grade==2)]))
+            , length(na.omit(yrbss_hs_cnty$grade[(yrbss_hs_cnty$grade==3)]))
+            , length(na.omit(yrbss_hs_cnty$grade[(yrbss_hs_cnty$grade==4)]))
+            , length(yrbss_hs_cnty$grade[is_tagged_na(yrbss_hs_cnty$grade, "a")]))
+Percents <- c(rep("a", length(Totals)))
+
+for (i in 1:length(Totals)){
+  Percents[i] <- percent(Totals[i]/Totals[1],accuracy = 0.1)
+}
+            
+
+Participation_Rates <- data.frame(Profiles, Totals, Percents)
+colnames(Participation_Rates)[1:3] <- c("Profile of students surveyed", "Number of students who responded", "Percent (%)")
+
+Participation_table <- kbl(Participation_Rates, booktabs = T, align = c('l', 'r', 'r'), position = 'b') %>% pack_rows(index = c("Total" = 1, "Gender" = 2, "Race/Ethnicity" = 6, "Grade Level" = 5))
+#kable_styling(Participation_table, position = "center", latex_options =  "basic")
+
+
+```
+
+\newpage  
+\centering
+### New Mexico Youth Risk and Resiliency Survey {.unlisted .unnumbered}  
+### Participation in `r {params$counties}` County  
+### High School (Grades 9-12) {.unlisted .unnumbered}  
+\raggedright
+
+The response rate for `r {params$counties}` County was `r signif(yrbss_hs_NM$rr_cnty[(yrbss_hs_NM$cntytxt=={params$counties})][1], 3)*100`%.  
+A high response rate produces survey results that are more representative of the student population.  
+A response rate of at least 60% allows generalization of results to the entire student body. A response 
+rate of 70% is excellent and allows a high degree of confidence in results. Response rates below 60% 
+are considered low, and caution should be exercised in interpreting results. Low response rates 
+indicate that the data may represent only students who participated in the survey and not necessarily 
+the entire student body
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+Participation_table
+
+```
+
+\newpage  
+\centering
+### New Mexico Youth Risk and Resiliency Survey {.unlisted .unnumbered}  
+# Risk Behaviors at a Glance  
+### `r {params$counties}` County {.unlisted .unnumbered}  
+### Grades 9-12 {.unlisted .unnumbered}
+\raggedright
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+Table_function <- function(varlist) {
+
+  Indicator <- c(rep("a",length(varlist)))
+  cnty_Value <- c(rep(0,length(varlist)))
+  cnty_ci_l <- c(rep(0,length(varlist)))
+  cnty_ci_u <- c(rep(0,length(varlist)))
+  cnty_ci <- c(rep("a",length(varlist)))
+  NM_Value <- c(rep(0,length(varlist)))
+  NM_ci_l <- c(rep(0,length(varlist)))
+  NM_ci_u <- c(rep(0,length(varlist)))
+  NM_ci <- c(rep("a",length(varlist)))
+
+
+  i=1
+  for(i in 1:length(varlist)){
+    varname <- varlist[i]
+    Indicator[i] <- var_label(yrbss_hs_NM[varname][[1]])
+
+
+    NM_Value[i] <- round((svymean(yrbss_hs_NM[varname], yrrs_nm, na.rm=T))[1] *100, 1)
+    NM_ci_l[i] <- round((confint(svymean(yrbss_hs_NM[varname], yrrs_nm, na.rm=T)))[1] *100, 1)
+    NM_ci_u[i] <- round((confint(svymean(yrbss_hs_NM[varname], yrrs_nm, na.rm=T)))[2] *100, 1)
+    NM_ci[i] <- paste0("(",NM_ci_l[i], "-",NM_ci_u[i],")")
+
+    cnty_Value[i] <- round((svyby(as.formula( paste0("~", varname)), ~cntytxt=={params$counties}, yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T))[2,2] *100, 1)
+    cnty_ci_l[i] <- round((svyby(as.formula( paste0("~", varname)), ~cntytxt=={params$counties}, yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T))[2,3] *100, 1)
+    cnty_ci_u[i] <- round((svyby(as.formula( paste0("~", varname)), ~cntytxt=={params$counties}, yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T))[2,4] *100, 1)
+    cnty_ci[i] <- paste0("(",format(cnty_ci_l[i], nsmall=1), "-",format(cnty_ci_u[i], nsmall=1),")")
+  }
+
+  #Indicator <- factor(Indicator, levels = var_label(yrbss_hs_NM[varlist]))
+  Data_frame_values <- data.frame(Indicator, cnty_Value, cnty_ci, NM_Value, NM_ci)
+
+  return(Data_frame_values)
+}
+
+table_bb <- Table_function(c("helmet", "seatbelt", "rodedui", "dui", "maridrv", "text",
+                             "fight", "fightscl","weapscl", "gun12m", "skipsafe", "hurtdate", "sexviol","sexforce",
+                             "bully", "cbully", "racetease",
+                             "nssi", "sad", "mental", "consider", "plan", "suiatt", "suiinj",
+                             "qntob5", "vape30", "cig30", "cigar", "spittob", "hookah"
+                             ))
+header_groups = c(1,2,2)
+names(header_groups) = c(" ", paste0({params$counties}, " County"), "New Mexico")
+
+kbl(table_bb, booktabs = T, align = NULL, position = 'b', row.names = FALSE, col.names = c("Indicator", "%", "(95% CI)", "%", "(95% CI)")) %>%
+  #kable_styling(latex_options =  "striped") %>%
+  add_header_above(header_groups) %>%
+  pack_rows( index = c("Unintentional Injuries" = 6, "Violence" = 8, "Bullying" = 3, "Mental health"=7,
+                       "Tobacco use" = 6))
+```
+
+\newpage
+\centering
+### New Mexico Youth Risk and Resiliency Survey {.unlisted .unnumbered}  
+# Risk Behaviors at a Glance  {.unlisted .unnumbered} 
+### `r {params$counties}` County {.unlisted .unnumbered}  
+### Grades 9-12 {.unlisted .unnumbered}
+\raggedright
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+table_cc <- Table_function(c("drnk30", "binge54", "drnk10", "drnk13", "dui",
+                             "mari30", "syn30", "rxpain30", "coca30", "her30", "meth30", "inh30",
+                             "qnowt", "qnobese", "bodywt2", "qnpa7day", "qnpa0day", "qndlype", "y21screen3", "qnbk7day", "fiveaday", "qnsoda1",
+                             "sexact", "sex4", "sex13", "condom", "y21rely", "y21qndualbc"))
+
+kbl(table_cc, booktabs = T, align = NULL, position = 'b', row.names = FALSE, col.names = c("Indicator", "%", "(95% CI)", "%", "(95% CI)")) %>%
+  #kable_styling(latex_options =  "striped") %>%
+  add_header_above(header_groups) %>%
+  pack_rows( index = c("Alcohol use" = 5, "Current drug use" = 7, "
+Physical Activity, Body Weight, and Nutrition" = 10, "Sexual behavior" = 6))
+```
+\newpage
+
+&nbsp;
+
+\newpage
+
+
+&nbsp;
+&nbsp;
+
+\centering
+
+### New Mexico Youth Risk and Resiliency Survey (YRRS) {.unlisted .unnumbered}  
+##  Highlights  
+### `r {params$counties}` County {.unlisted .unnumbered}  
+### Grades 9-12 {.unlisted .unnumbered}
+
+\raggedright
+
+\newpage
+
+Highlights from the New Mexico Youth Risk and Resiliency Survey (YRRS)  
+`r {params$counties}` County  
+High School (Grades 9-12)
+&nbsp;
+
+
+
+\par
+|   Statewide results from the 2021 High School NM YRRS revealed both encouraging and concerning trends in New Mexico. Rates of youth alcohol use, drug use and most tobacco use decreased over the past 10 years. Trends in rates of behaviors associated with violence were mixed, as the rates of physical fighting and carrying a weapon to school both decreased, while rates of sexual and dating violence remained largely unchanged. The rate of being bullied at school decreased, while the rate of electronic bullying showed little variation.  
+
+|   Of serious concern were the increasing rates for obesity, suicidal behaviors, and characteristics associated with mental health.
+
+|   The COVID-19 pandemic played a big part in the 2021 YRRS. When data were collected in the fall and winter of 2021, school were facing COVID-related closures and high rates of absenteeism, resulting in decreased YRRS participation at the student and school level. COVID may also have altered student behavior, as there were fewer opportunities for social interaction, and fewer opportunities to engage in socially-related high-risk behaviors. COVID also may have affected the emotional well-being of students. The 2021 YRRS included questions about the effect of COVID on students’ lives.
+
+|   The rate of obesity or overweight, after increasing for several years, has not increased since 2015. Rates for most violence-related behaviors have not changed greatly. However, the rate of ever being physically forced to have sexual intercourse is higher in New Mexico than in the U.S.
+
+
+|   This report puts the findings for New Mexico alongside YRRS results for `r {params$counties}` County. Thank you for using this information to make New Mexico and your own community a safer and healthier place for all young people. For more YRRS results, see www.youthrisk.org.
+
+\newpage
+
+##### Mental Health {.unlisted .unnumbered}
+
+&nbsp;
+
+|   Suicide is the second leading causes of death among adolescents in New Mexico. The NM rate of past-year suicide attempts has not changed substantially since 2011 (2011 = 9.8%; 2019 = 10.4%). The rate for suicide attempts resulting in injury has also been stable since 2011 (2011 = 3.7%; 2019 = 3.1%). The rate of sadness or hopelessness increased by 44% from 2011 – 2021 (30.8% to 44.2%), while over the same years, the rate of seriously considering a suicide attempt increased by 18% (17.1% to 20.1%) and the rate of making a suicide plan also increased by 18% (14.3% to 16.9%).
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 4.5, fig.width=6.5}
+barplot_county(c("suiinj", "suiatt","plan","consider", "mental", "sad","nssi"), "Past Year Mental Health Indicators" )
+```
+
+\newpage
+
+##### Tobacco Use {.unlisted .unnumbered}
+
+&nbsp;
+
+|   For the first time since 2015, when a question about e-cigarette use (vaping) was first included in the survey, the NM rate of current e-cigarette use decreased, from 33.4% in 2019 to 25.3% in 2021. The NM rates of current use all other tobacco products decreased dramatically over the ten years from 2011-2021: Cigarettes (20.7% to 4.2%); cigars (15.8% to 3.1%); spit tobacco (9.5% to 2.9%); and hookah use to smoke tobacco (21.2% to 3.2%). The rate of any current tobacco use (past 30-day use of at least one of five tobacco products: e-cigarettes, cigarettes, cigars, hookah, or spit tobacco) decreased from 37.2% in 2019 to 27.3% in 2021, after climbing from 23.1% in 205 to 33.4% in 2019.
+
+&nbsp;
+&nbsp;
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 5, fig.width=6.5}
+print(barplot_county(c("spittob","cigar","hookah","cig30", "vape30","qntob5"), "Current Tobacco Use"))
+```
+
+\newpage
+
+##### Alcohol Use {.unlisted .unnumbered}
+
+&nbsp;
+
+|   Alcohol use by young people is associated with injuries such as motor vehicle crashes, the leading cause of death among adolescents. Alcohol use at an early age is also associated with an increased risk of chronic liver disease and alcohol dependence later in life. In recent years, rates of current drinking, binge drinking, and drinking and driving have been decreasing among young people nationally and in New Mexico. In New Mexico, from 2011 to 2021, the rate of current alcohol use decreased by 95% (38.2% to 19.5%), binge drinking decreased by more than 200% (24.0% to 7.6%), drinking before the age of 13 decreased by 48% (26.4% to 17.8%), and drinking and driving decreased by 91% (8.8% - 4.6%).
+
+&nbsp;
+&nbsp;
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 5, fig.width=6.5}
+print(barplot_county(c("drnk30","binge54","drnk10","drnk13", "dui"), "Alcohol Use"))
+```
+
+\newpage
+
+##### Drug Use {.unlisted .unnumbered}
+
+&nbsp;
+
+|   All rates of current drug use decreased from 2019 to 2021, after a long period of very little change for most substances. From 2019-2021, current marijuana use decreased by almost 30% (28.4% to 20.3%), current inhalant use decreased by 30% (5.0% to 3.4%), current cocaine use decreased by 50% (4.1% to 2.0%), current methamphetamine used decreased by 50% (2.8% to 1.4%), and current heroin use decreased by 60% (2.7% to 1.1%).
+
+&nbsp;
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 5, fig.width=6.5}
+print(barplot_county(c("her30", "coca30", "meth30", "inh30", "syn30", "rxpain30", "mari30"), "Current Drug Use"))
+```
+
+\newpage
+
+##### Sexual Behavior {.unlisted .unnumbered}
+
+&nbsp;
+
+|   Early and unsafe sexual activity puts teens at risk of unplanned pregnancy and sexually transmitted infections. The NM rate of being sexually active decreased from 32.3% in 2011 to 19.9% in 2021, and the rate of have sexual intercourse before age 13 decreased from 7.9% to 4.2%. Among sexually active students, the rate of condom use decreased from 58.2% to 49.3%, the rate of using a reliable form of birth control increased from 21.8% to 29.7%, and the rate of using both reliable birth control and a condom did not vary greatly from 2011 (7.5%) to 2021 (8.8%).
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 4, fig.width=6.5}
+print(barplot_county(c("sex13","sex4","sexact"), "Sexual Behavior"))
+print(barplot_county(c("condom","y21rely","y21qndualbc"), "Sexual Behavior among Sexually Active Students")+ scale_x_continuous(labels = scales::percent_format(scale = 100), limits = c(0,1), breaks = seq(0, 1, .25)))
+```
+
+
+\newpage
+
+##### Physical Activity, Body Weight, and Nutrition {.unlisted .unnumbered}
+
+&nbsp;
+
+|   Poor nutritional behaviors and a lack of physical activity put young people at risk of becoming overweight or obese. Obese and overweight teens are at risk for many chronic diseases that can cause death or disability. The rate of obesity increased by 40% from 2011 to 2021 (13.4% to 19.9%), with most of that increase occurring from in 2019 to 2021 (15.7% to 19.9%). The rate of overweight increased by 30% from 2011 to 2021 (13.6% to 17.7%).
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 4, fig.width=6.5}
+print(barplot_county(c("bodywt2","qnobese","qnowt"), "Obesity and Overweight"))
+print(barplot_county(c("qnsoda1","fiveaday","qnbk7day"), "Nutrition"))
+print(barplot_county(c("y21screen3", "qndlype","qnpa7day","qnpa0day"), "Physical Activity"))
+```
+
+\newpage
+
+##### Injury: Behaviors associated with Violence {.unlisted .unnumbered}
+
+&nbsp;
+
+|   From 2011 to 2021, the NM rate for physical fighting decreased by 39% (33.1% to 20.2%), the rate of carrying a weapon (gun, knife, or club) on school property decreased by 27% (6.3% to 4.6%). Rates of sexual and dating violence remained largely unchanged. The rate of skipping school because of safety reasons almost doubled (7.5% to 14.9%). The rate of being bullied at school decreased by 26% (18.5% to 13.6%), while the rate of electronic bullying showed little variation (12.5% in 2021).
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 6, fig.width=6.5}
+print(barplot_county(c("sexforce","sexviol","hurtdate", "skipsafe", "gun12m", "weapscl", "fightscl", "fight"), "Behaviors Associated with Violence"))
+```
+\newpage
+
+##### COVID-19 Pandemic
+
+&nbsp;
+
+|   The COVID-19 pandemic had a big impact on the lives of young people. The YRRS included questions about food security, frequent mental distress, family job security, and the difficulty of completing schoolwork during the pandemic.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 6, fig.width=6.5, fig.align = "center"}
+print(barplot_county(c("covmental","covlostjob","covhungry", "covschool"), "COVID-19 Pandemic"))
+```
+
+\newpage
+&nbsp;
+&nbsp;
+
+\centering
+
+## `r {params$counties}` County {.unlisted .unnumbered} 
+## Charts
+
+\raggedright
+
+\newpage
+### Unintentional Injury
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 4.5, fig.width=6.5}
+# Unintentional_injury_1 <- trendplot(c("helmet", "seatbelt"), graph_subtitle = "Behaviors Associated with Unintentional Injury", grouped = TRUE)
+# 
+# Unintentional_injury_2 <- trendplot(c("rodedui", "dui", "text"), graph_subtitle = "Behaviors Associated with Unintentional Injury", grouped = TRUE)
+# 
+# ggpubr::ggarrange(Unintentional_injury_1, Unintentional_injury_2, ncol = 1, align = "v")
+
+trendplot(c("helmet", "seatbelt"), graph_subtitle = "Behaviors Associated with Unintentional Injury")
+trendplot(c("rodedui", "dui", "text"), graph_subtitle = "Behaviors Associated with Unintentional Injury")
+
+
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("helmet", "seatbelt", "rodedui"), "Unintentional Injury")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("dui", "maridrv", "text"), "Unintentional Injury")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("gunhome", "gun12m"), "Unintentional Injury")
+```
+
+\newpage
+### Injury: Behaviors Associated with Violence
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 6, fig.width=7, fig.align = "center"}
+trendplot(c("skipsafe", "weapscl", "fightscl", "fight"), graph_subtitle = "Behaviors Associated with Violence")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("skipsafe", "weapscl", "fightscl", "fight"), "Injury: Behaviors Associated with Violence")
+```
+
+### Injury: Sexual and Intimate Partner Violence
+```{r echo=FALSE, fig.align="center", fig.height=6, fig.width=7.5, message=FALSE, warning=FALSE}
+trendplot(c("hurtdate", "sexviol", "sexforce"), graph_subtitle = "Injury: Sexual and Intimate Partner Violence")
+```
+\newpage
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("sexforce", "sexviol", "hurtdate"), "Injury: Sexual and Intimate Partner Violence")
+```
+
+\newpage
+### Injury: Bullying and Racial Discrimination
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 6, fig.width=7, fig.align = "center"}
+trendplot(c("bully", "cbully", "weapscl", "skipsafe"), graph_subtitle = "Injury: Bullying and School Violence")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("weapscl", "bully", "cbully", "racetease"), "Injury: Bullying and Racial Discrimination")
+```
+
+\newpage
+### Mental Health
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 6, fig.width=7, fig.align = "center"}
+trendplot(c("sad", "nssi", "consider", "plan", "suiatt", "suiinj"), graph_subtitle = "Mental Health")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("nssi", "sad", "mental"), "Mental Health")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("consider", "plan", "suiatt", "suiinj"), "Mental Health: Suicidal behaviors")
+```
+
+\newpage
+### Tobacco Use
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 6, fig.width=7, fig.align = "center"}
+trendplot(c("qntob5", "vape30", "hookah", "cig30", "cigar", "spittob"), graph_subtitle = "Current Tobacco Use")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("cigevr", "cig113", "cig30", "qnfrcig"), "Tobacco: Cigarette Use")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("vapeevr", "vape30", "vapedly"), "Tobacco: E-cigarettes / Electronic Vapor Products")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("cigar", "hookah", "spittob", "qntob5"), "Other Current Tobacco Use")
+```
+
+\newpage
+### Alcohol Use
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 4, fig.width=6.5, fig.align = "center"}
+trendplot(c("drnk30", "binge54", "drnk13", "drnk10"), graph_subtitle = "Alcohol Use")
+trendplot(c("rodedui", "dui"), graph_subtitle = "Alcohol Use")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("drnkevr", "drnk13", "drnk30", "binge54", "drnk10"), "Alcohol Use")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("alcbought", "alcgave", "alcmoney", "alctook"), "Behaviors of current drinkers: How Usually Got Alcohol")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("alcmyhome", "alcotrhome", "alcvehicle", "alcschool", "alcpub"), "Behaviors of current drinkers: Where Usually Drank Alcohol")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("rodedui", "dui"), "Alcohol Use and Injury")
+```
+
+\newpage
+### Drug Use
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 4, fig.width=6.5, fig.align = "center"}
+trendplot(c("mari30", "rxpain30", "syn30", "inh30"), graph_subtitle = "Current drug Use")
+trendplot(c("coca30", "meth30", "her30"), graph_subtitle = "Current drug Use")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("marievr", "mari30", "marihvy", "mari13"), "Drug Use: Marijuana")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("syn30", "rxpain30", "coca30", "her30", "meth30", "inh30"), "Current (past 30 day) Drug Use")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("rxpainevr", "cocaevr", "ecsevr", "methevr", "herevr", "injevr"), "Lifetime Drug Use (ever used in lifetime)")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("drgscl"), "Access to Drugs")
+```
+
+\newpage
+### Sexual Behavior
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 6, fig.width=7, fig.align = "center"}
+trendplot(c("condom", "sexevr", "sexact", "sex13"), graph_subtitle = "Sexual Behavior")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("sexevr", "sexact", "sex13", "sex4"), "Sexual Behavior")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("sexdrg", "condom", "nocondom"), "Sexual Behaviors of Sexually Active Students")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("y21bcp", "y21qniudimp", "y21qnshparg", "y21bccondom", "y21bcwithd", "y21qnbcnone"), "Birth Control Methods used by Sexually Active Students")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("y21rely", "y21qndualbc"), "Birth Control Methods used by Sexually Active Students")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("opponly", "sameonly", "bothsex"), "Sex of Sexual Contacts")
+```
+
+\newpage
+### Nutrition
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 6, fig.width=7, fig.align = "center"}
+trendplot(c("qnbk7day", "fiveaday", "qnsoda1", "nobk"), graph_subtitle = "Nutrition Indicators")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("fiveaday", "qnfr0", "qnveg0"), "Nutrition")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("qnsoda1", "nobk", "qnbk7day"), "Nutrition")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("hungry", "hungrare"), "Nutrition")
+```
+
+\newpage
+### Physical Activity
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 6, fig.width=7, fig.align = "center"}
+trendplot(c("qnpa7day", "pe1", "qndlype"), graph_subtitle = "Physical Activity Indicators")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("qnpa0day", "qnpa7day", "y21screen3"), "Physical Activity")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("pe0", "qndlype", "concussion"), "Physical Activity")
+```
+
+
+\newpage
+### Body Weight
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 6, fig.width=7, fig.align = "center"}
+trendplot(c("bodywt2", "qnobese", "qnowt"), graph_subtitle = "Obesity and Overweight")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("bodywt2", "qnobese", "qnowt"), "Obesity and Overweight")
+```
+
+\newpage
+### Sexual Identity
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("straight", "lgb", "questioning"), "Sexual Identity")
+```
+
+### Gender Identity
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("gendernc", "genderns", "gendercis"), "Gender Identity")
+```
+
+### Other Behaviors and Characteristics
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("hiv", "dental"), "Other Behaviors and Characteristics: HIV test and dental visits")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("asthmaev", "asthmac", "physdis"), "Other Behaviors and Characteristics:\n Asthma, Physical Disabilities and Long-term Health Problems")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("pedlths", "pedhs", "pedcoll"), "Other Behaviors and Characteristics: Parents' Education")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("hlfnoneng", "liveoutus", "uslive"), "Other Behaviors and Characteristics")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("homeless", "unaccmin", "gamble", "gamblefr", "sleep8"), "Other Behaviors and Characteristics")
+```
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("gr_ab", "gr_df", "skipmo", "nvrskip"), "Other Behaviors and Characteristics: School Grades and Attendance")
+```
+
+\newpage
+### COVID-19 Pandemic
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 17, fig.width=12, fig.align = "center"}
+barplot_group(c("covmental", "covlostjob", "covhungry", "covschool"), "Student characteristics during the COVID-19 Pandemic")
+```
+
+\newpage
+
+
+&nbsp;
+&nbsp;
+&nbsp;
+&nbsp;
+
+\centering
+
+# Resiliency/Protective Factors
+
+\raggedright
+
+\newpage
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 4, fig.width=6, fig.align = "center"}
+barplot_county_2(c("qn106", "qn107", "qn114"), "Resiliency/Protective Factors in the Home") + guides(x.sec = guide_none(title = "It is ''Very much true'' or ''Pretty much true'' that in my home..."))
+
+
+barplot_county_2(c("qn108", "qn109", "qn115", "qn117"), "Resiliency/Protective Factors in the School") + guides(x.sec = guide_none(title = "It is ''Very much true'' or ''Pretty much true'' that in my school..."))
+
+```
+
+\newpage
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 4, fig.width=6, fig.align = "center"}
+barplot_county_2(c("qn110", "qn111", "qn118"), "Resiliency/Protective Factors in the Community")  + guides(x.sec = guide_none(title = "It is ''Very much true'' or ''Pretty much true'' that outside my home and school..."))
+
+barplot_county_2(c("qn112", "qn113", "qn116", "qn119"), "Resiliency/Protective Factors with Peers and Personal") + guides(x.sec = guide_none(title = "It is ''Very much true'' or ''Pretty much true'' that..."))
+```
+
+\newpage
+
+&nbsp;
+
+\newpage
+
+&nbsp;
+&nbsp;
+
+\centering
+
+# Relationship Between Selected Risk Behaviors and Resiliency/Protective Factors
+
+\raggedright
+
+\newpage
+
+```{r echo=FALSE, fig.height=13, fig.width=12, message=FALSE, warning=FALSE}
+barplot_resiliency("fight", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
+
+#risk_props
+```
+
+#### How to read this chart: {.unlisted .unnumbered}
+ * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% skipped school because of safety concerns.
+ * Of those who said it was 'A little but or pretty much true' that a parent or other adult was interested in their school work, `r risk_props[2]`% skipped school because of safety concerns.
+ * Of those who said it was 'Very much true' that a parent or other adult was interested in their school work, `r risk_props[3]`% skipped school because of safety concerns.
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+barplot_resiliency("skipsafe", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
+```
+#### How to read this chart: {.unlisted .unnumbered}
+ * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% skipped school because of safety concerns.
+ * Of those who said it was 'A little but or pretty much true' that a parent or other adult was interested in their school work, `r risk_props[2]`% skipped school because of safety concerns.
+ * Of those who said it was 'Very much true' that a parent or other adult was interested in their school work, `r risk_props[3]`% skipped school because of safety concerns.
+ 
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+barplot_resiliency("bully", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
+```
+#### How to read this chart: {.unlisted .unnumbered}
+ * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% were bullied at school.
+ * Of those who said it was 'A little but or pretty much true' that a parent or other adult was interested in their school work, `r risk_props[2]`% were bullied at school.
+ * Of those who said it was 'Very much true' that a parent or other adult was interested in their school work, `r risk_props[3]`% were bullied at school.
+ 
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+barplot_resiliency("sad", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
+```
+#### How to read this chart: {.unlisted .unnumbered}
+ * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% felt sadness or hopelessness.
+ * Of those who said it was 'A little but or pretty much true' that a parent or other adult was interested in their school work, `r risk_props[2]`% felt sadness or hopelessness.
+ * Of those who said it was 'Very much true' that a parent or other adult was interested in their school work, `r risk_props[3]`% felt sadness or hopelessness.
+ 
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+barplot_resiliency("suiatt", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
+```
+#### How to read this chart: {.unlisted .unnumbered}
+ * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% attempted suicide.
+ * Of those who said it was 'A little but or pretty much true' that a parent or other adult was interested in their school work, `r risk_props[2]`% attempted suicide.
+ * Of those who said it was 'Very much true' that a parent or other adult was interested in their school work, `r risk_props[3]`% attempted suicide.
+ 
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+barplot_resiliency("vape30", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
+```
+#### How to read this chart: {.unlisted .unnumbered}
+ * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% were current users of e-cigarettes/vapor products.
+ * Of those who said it was 'A little but or pretty much true' that a parent or other adult was interested in their school work, `r risk_props[2]`% were current users of e-cigarettes/vapor products.
+ * Of those who said it was 'Very much true' that a parent or other adult was interested in their school work, `r risk_props[3]`% were current users of e-cigarettes/vapor products.
+ 
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+barplot_resiliency("binge54", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
+```
+#### How to read this chart: {.unlisted .unnumbered}
+ * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% were binge drinkers.
+ * Of those who said it was 'A little but or pretty much true' that a parent or other adult was interested in their school work, `r risk_props[2]`% were binge drinkers.
+ * Of those who said it was 'Very much true' that a parent or other adult was interested in their school work, `r risk_props[3]`% were binge drinkers.
+ 
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+barplot_resiliency("dui", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
+```
+#### How to read this chart: {.unlisted .unnumbered}
+ * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% drove when they had been drinking.
+ * Of those who said it was 'A little but or pretty much true' that a parent or other adult was interested in their school work, `r risk_props[2]`% drove when they had been drinking.
+ * Of those who said it was 'Very much true' that a parent or other adult was interested in their school work, `r risk_props[3]`% drove when they had been drinking.
+ 
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+barplot_resiliency("dui", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
+```
+#### How to read this chart: {.unlisted .unnumbered}
+ * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% drove when they had been drinking.
+ * Of those who said it was 'A little but or pretty much true' that a parent or other adult was interested in their school work, `r risk_props[2]`% drove when they had been drinking.
+ * Of those who said it was 'Very much true' that a parent or other adult was interested in their school work, `r risk_props[3]`% drove when they had been drinking.
+ 
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+barplot_resiliency("rxpain30", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
+```
+#### How to read this chart: {.unlisted .unnumbered}
+ * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% used painkillers to get high.
+ * Of those who said it was 'A little but or pretty much true' that a parent or other adult was interested in their school work, `r risk_props[2]`% used painkillers to get high.
+ * Of those who said it was 'Very much true' that a parent or other adult was interested in their school work, `r risk_props[3]`% used painkillers to get high.
+ 
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+barplot_resiliency("sexact", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
+```
+#### How to read this chart: {.unlisted .unnumbered}
+ * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% were sexually active.
+ * Of those who said it was 'A little but or pretty much true' that a parent or other adult was interested in their school work, `r risk_props[2]`% were sexually active.
+ * Of those who said it was 'Very much true' that a parent or other adult was interested in their school work, `r risk_props[3]`% were sexually active.
+ 
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+barplot_resiliency("bodywt2", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
+```
+#### How to read this chart: {.unlisted .unnumbered}
+ * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% were overweight or obese.
+ * Of those who said it was 'A little but or pretty much true' that a parent or other adult was interested in their school work, `r risk_props[2]`% were overweight or obese.
+ * Of those who said it was 'Very much true' that a parent or other adult was interested in their school work, `r risk_props[3]`% were overweight or obese.
+ 
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+barplot_resiliency("homeless", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
+```
+#### How to read this chart: {.unlisted .unnumbered}
+ * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% had unstable housing.
+ * Of those who said it was 'A little but or pretty much true' that a parent or other adult was interested in their school work, `r risk_props[2]`% had unstable housing.
+ * Of those who said it was 'Very much true' that a parent or other adult was interested in their school work, `r risk_props[3]`% had unstable housing.
+ 
+\newpage
+
+
+&nbsp;
+&nbsp;
+&nbsp;
+&nbsp;
+
+\centering
+
+# Appendix A: Questionnaire with Results
+
+\raggedright
+
+\newpage
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+#yrbss_hs_cnty <- subset(yrrs2019, cntytxt=={params$counties})
+Questionnaire <- read_excel("Questionnaires_HS-MS_2021.xlsx", 
+    sheet = "HighSchool_2021_Questionnaire")
+
+Personal_Info_Questions <- (Questionnaire$`NM 2021 HS YRRS Text`[(Questionnaire$`Row Type`=="Response")])[1:21]
+#sum(yrbss_hs_cnty$v1[yrbss_hs_cnty$v1==2], na.rm=TRUE) #Get number of responses with answer
+
+
+Totals <- c(#How old are you?
+            length(na.omit(yrbss_hs_cnty$v1[yrbss_hs_cnty$v1==1])),
+            length(na.omit(yrbss_hs_cnty$v1[yrbss_hs_cnty$v1==2])),
+            length(na.omit(yrbss_hs_cnty$v1[yrbss_hs_cnty$v1==3])),
+            length(na.omit(yrbss_hs_cnty$v1[yrbss_hs_cnty$v1==4])),
+            length(na.omit(yrbss_hs_cnty$v1[yrbss_hs_cnty$v1==5])),
+            length(na.omit(yrbss_hs_cnty$v1[yrbss_hs_cnty$v1==6])),
+            length(na.omit(yrbss_hs_cnty$v1[yrbss_hs_cnty$v1==7])),
+            #What is your sex?
+            length(na.omit(yrbss_hs_cnty$v2[yrbss_hs_cnty$v2==1], na.rm=TRUE)),
+            length(na.omit(yrbss_hs_cnty$v2[yrbss_hs_cnty$v2==2], na.rm=TRUE)),
+            #In what grade are you?
+            length(na.omit(yrbss_hs_cnty$grade[(yrbss_hs_cnty$grade==1)]))
+            , length(na.omit(yrbss_hs_cnty$grade[(yrbss_hs_cnty$grade==2)]))
+            , length(na.omit(yrbss_hs_cnty$grade[(yrbss_hs_cnty$grade==3)]))
+            , length(na.omit(yrbss_hs_cnty$grade[(yrbss_hs_cnty$grade==4)]))
+            , length(yrbss_hs_cnty$grade[is_tagged_na(yrbss_hs_cnty$grade, "a")]),
+            #Are you Hispanic or Latino?
+            length(na.omit(yrbss_hs_cnty$v1[yrbss_hs_cnty$v4==1], na.rm=TRUE)),
+            length(na.omit(yrbss_hs_cnty$v1[yrbss_hs_cnty$v4==2], na.rm=TRUE)),
+            #What is your race?
+            length(na.omit(yrbss_hs_cnty$ai[(yrbss_hs_cnty$ai==1)], na.rm=TRUE)),
+            length(na.omit(yrbss_hs_cnty$as[yrbss_hs_cnty$as==1], na.rm=TRUE)),
+            length(na.omit(yrbss_hs_cnty$aa[yrbss_hs_cnty$aa==1], na.rm=TRUE)),
+            length(na.omit(yrbss_hs_cnty$pi[yrbss_hs_cnty$pi==1], na.rm=TRUE)),
+            length(na.omit(yrbss_hs_cnty$wh[yrbss_hs_cnty$wh==1], na.rm=TRUE)))
+            
+
+Percents <- c(
+            #How old are you?
+            svyby(~v1==1, ~cntytxt=={params$counties},yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T)[2,2] %>% scales::percent(accuracy=0.1),
+            svyby(~v1==2, ~cntytxt=={params$counties},yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T)[2,2]%>% scales::percent(accuracy=0.1),
+            svyby(~v1==3, ~cntytxt=={params$counties},yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T)[2,2]%>% scales::percent(accuracy=0.1),
+            svyby(~v1==4, ~cntytxt=={params$counties},yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T)[2,2]%>% scales::percent(accuracy=0.1),
+            svyby(~v1==5, ~cntytxt=={params$counties},yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T)[2,2]%>% scales::percent(accuracy=0.1),
+            svyby(~v1==6, ~cntytxt=={params$counties},yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T)[2,2]%>% scales::percent(accuracy=0.1),
+            svyby(~v1==7, ~cntytxt=={params$counties},yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T)[2,2]%>% scales::percent(accuracy=0.1),
+            #What is your sex?
+            svyby(~v2==1, ~cntytxt=={params$counties},yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T)[2,2]%>% scales::percent(accuracy=0.1),
+            svyby(~v2==2, ~cntytxt=={params$counties},yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T)[2,2]%>% scales::percent(accuracy=0.1),
+            #In what grade are you?
+            svyby(~grade==1, ~cntytxt=={params$counties},yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T)[2,2]%>% scales::percent(accuracy=0.1),
+            svyby(~grade==2, ~cntytxt=={params$counties},yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T)[2,2]%>% scales::percent(accuracy=0.1),
+            svyby(~grade==3, ~cntytxt=={params$counties},yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T)[2,2]%>% scales::percent(accuracy=0.1),
+            svyby(~grade==4, ~cntytxt=={params$counties},yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T)[2,2]%>% scales::percent(accuracy=0.1),
+            svyby(~(is_tagged_na(grade, "a")), ~cntytxt=={params$counties},yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T)[2,2]%>% scales::percent(accuracy=0.1),
+            #Are you Hispanic or Latino?
+            svyby(~v4==1, ~cntytxt=={params$counties},yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T)[2,2]%>% scales::percent(accuracy=0.1),
+            svyby(~v4==1, ~cntytxt=={params$counties},yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T)[2,2]%>% scales::percent(accuracy=0.1),
+            #What is your race?
+            svyby(~ai, ~cntytxt=={params$counties},yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T)[2,2]%>% scales::percent(accuracy=0.1),
+            svyby(~as, ~cntytxt=={params$counties},yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T)[2,2]%>% scales::percent(accuracy=0.1),
+            svyby(~aa, ~cntytxt=={params$counties},yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T)[2,2]%>% scales::percent(accuracy=0.1),
+            svyby(~pi, ~cntytxt=={params$counties},yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T)[2,2]%>% scales::percent(accuracy=0.1),
+            svyby(~wh, ~cntytxt=={params$counties},yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T)[2,2]%>% scales::percent(accuracy=0.1))
+
+
+
+Personal_Info <- data.frame(Personal_Info_Questions, Totals, Percents)
+colnames(Personal_Info)[1:3] <- c("Personal Information", "Number of responses", "Percent (%)")
+
+Appendix_A <- kbl(Personal_Info, booktabs = T, align = c('l', 'l', 'r'), position = 'b') %>% pack_rows(index = c("How old are you?" = 7, "What is your sex?" = 2, "In what grade are you?" = 5, "Are you Hispanic or Latino?" = 2, "What is your race? (Select one or more responses.)"=5))
+#kable_styling(Participation_table, position = "center", latex_options =  "basic")
+Appendix_A
+
+```
+ 
+ 
