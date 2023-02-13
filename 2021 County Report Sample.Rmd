@@ -1,6 +1,6 @@
 ---
 title: |
-  ![](YRRS Logo.jpg){width=6in}    
+  ![](nmyrrsLogo.png){width=6in}    
     New Mexico Youth Risk and Resiliency Survey (YRRS)
 subtitle: |
   | High School Survey Results
@@ -16,10 +16,12 @@ header-includes:
 - \fancyhead[L]{New Mexico `r params$year` YRRS}
 - \fancyhead[R]{Grades 9 - 12}
 - \renewcommand{\headrulewidth}{0pt}
-- \usepackage{booktabs}
+- \usepackage{tabularx,booktabs}
+- \usepackage{longtable}
 
 output: 
   pdf_document
+urlcolor: blue
 
 params:
   counties: "Valencia"
@@ -51,7 +53,7 @@ library(magrittr)
 library(scales)
 library(ggpubr)
 
-options(digits = 7)
+options(digits = 6)
 countystr <- paste0({params$counties}," County")
 
 
@@ -78,20 +80,20 @@ year1<-subset(year1, fwtlvl_cnty!="")
 yrrs_cnty_1 <- svydesign(id=~psu, strata=~stratum, weights=~fwtlvl_cnty, data=year1)
 
 
-year2 <- read_dta("/Users/edddavis/Documents/YRRS/County & District Reports/Datasets/nmHS2013YRRS_nm_v3.dta")
+year2 <- read_dta("YRRS/County & District Reports/Datasets/nmHS2013YRRS_nm_v3.dta")
 year2<-subset(year2, fwt_cnty!="")
 yrrs_cnty_2 <- svydesign(id=~psu, strata=~strata, weights=~fwt_cnty, data=year2)
 
 
-year3 <- read_dta("/Users/edddavis/Documents/YRRS/County & District Reports/Datasets/nmHS2015YRRS_nm_v6.dta")
+year3 <- read_dta("YRRS/County & District Reports/Datasets/nmHS2015YRRS_nm_v6.dta")
 yrrs_cnty_3 <- svydesign(id=~psu, strata=~strata, weights=~fwt_cnty, data=year3)
 
 
-year4 <- read_dta("/Users/edddavis/Documents/YRRS/County & District Reports/Datasets/nmHS2017YRRS_nm_v6_dg.dta")
+year4 <- read_dta("YRRS/County & District Reports/Datasets/nmHS2017YRRS_nm_v6_dg.dta")
 yrrs_cnty_4 <- svydesign(id=~psu, strata=~strata, weights=~fwt_cnty, data=year4)
 
 
-year5 <- read_dta("/Users/edddavis/Documents/YRRS/County & District Reports/Datasets/nmHS2019YRRS_nm_v2_dg.dta")
+year5 <- read_dta("YRRS/County & District Reports/Datasets/nmHS2019YRRS_nm_v2_dg.dta")
 yrrs_cnty_5 <- svydesign(id=~psu, strata=~strata, weights=~fwt_cnty, data=year5)
 options(survey.lonely.psu = "adjust")
 
@@ -282,9 +284,9 @@ barplot_county <- function(varlist, graph_title) {
   
   #Limit the width of the graph to 50% if all values are below 50%
   greater_than_50 <- FALSE
-  for (p in Value){
+  for (p in 1:length(Value)){
     
-    if (p > 0.5) {
+    if (Value[p] > 0.5|| ci_u[p]> 0.5) {
       new_plot <- new_plot + scale_x_continuous(labels = scales::percent_format(scale = 100),
                      limits = c(0,1), breaks = seq(0, 1, .25))
       greater_than_50 <- TRUE
@@ -688,7 +690,7 @@ barplot_resiliency <- function(risk_factor, Resiliency_factors_list, level){
     # }
     
     #Global variables for use in text
-    risk_props <<- Resiliency_values[1:3,14]%>% signif(3) *100
+    risk_props <<- Resiliency_values[1:3,length(Resiliency_factors_list)]%>% signif(3) *100
     
     return(newplot)
 }
@@ -705,49 +707,54 @@ New Mexico Youth Risk and Resiliency Survey: High School Survey Results 2021, `r
 &nbsp;    
 &nbsp;    
 &nbsp;  
-This publication was produced by the New Mexico Department of Health (NM DOH), the Public Education Department (NM PED), and the University of New Mexico Prevention Research Center. The NM YRRS receives support from the Centers for Disease Control and Prevention in cooperation with the NM PED through Grant number 6NU87PS0043 14-05-01. For information about administration and methods used in implementation of the New Mexico Youth Risk and Resiliency Survey (NM YRRS), see www.youthrisk.org.
+This publication was produced by the New Mexico Department of Health (NM DOH), the Public Education Department (NM PED), and the University of New Mexico Prevention Research Center. The NM YRRS receives support from the Centers for Disease Control and Prevention in cooperation with the NM PED through Grant number 6NU87PS0043 14-05-01. For information about administration and methods used in implementation of the New Mexico Youth Risk and Resiliency Survey (NM YRRS), see [www.youthrisk.org](https://www.youthrisk.org).
 
 
 \newpage
 
 ### ACKNOWLEDGEMENTS {.unlisted .unnumbered}
-This report is a product of the NM Youth Risk and Resiliency Survey (YRRS), a project that characterizes risk behaviors and resiliency/protective factors among New Mexico youth. The YRRS is a joint project of the New Mexico Department of Health (NMDOH) and the New Mexico Public Education Department (PED), with support and technical assistance from the University of New Mexico Prevention Research Center (UNM PRC); the Office of Substance Abuse Prevention, Behavioral Health Services Division (OSAP-BHSD); the Albuquerque Area Southwest Tribal Epidemiology Center (AASTEC); and the U.S. Centers for Disease Control and Prevention, Division of Adolescent and School Health (CDC-DASH). Gratitude is extended to the individuals listed below for their contribution toward developing and producing this report. (Individuals who served on the NM-YRRS 2019 Steering Committee are identified by an asterisk (*).)
+This report is a product of the NM Youth Risk and Resiliency Survey (YRRS), a project that characterizes risk behaviors and resiliency/protective factors among New Mexico youth. The YRRS is a joint project of the New Mexico Department of Health (NMDOH) the New Mexico Public Education Department (PED), and the University of New Mexico Prevention Research Center (UNM PRC), with support and technical assistance from the Office of Substance Abuse Prevention, Behavioral Health Services Division (OSAP-BHSD); the Albuquerque Area Southwest Tribal Epidemiology Center (AASTEC); and the U.S. Centers for Disease Control and Prevention, Division of Adolescent and School Health (CDC-DASH). Gratitude is extended to the individuals listed below for their contribution to developing and producing this report. (Individuals who served on the NM-YRRS 2019 Steering Committee are identified by an asterisk (*).)
 
 ### NEW MEXICO DEPARTMENT OF HEALTH {.unlisted .unnumbered}
-Billy J. Jimenez, Acting Cabinet Secretary  
-Christine Ross, MD, MPH, State Epidemiologist and Division Director, Emergency and Response Division  
-Toby Rosenblatt, MPA, Bureau Chief, Injury and Behavioral Epidemiology Bureau  
+Patrick Allen, Acting Cabinet Secretary  
+Laura Parajon, MD, MPH, Deputy Secretary, State Epidemiologist and Acting Division Director, Emergency and Response Division  
+Rachel Wexler, Acting Bureau Chief, Injury and Behavioral Epidemiology Bureau  
 Dan Green, MPH, Survey Epidemiologist, Injury and Behavioral Epidemiology Bureau*  
-Hayley Peterson, MPH, Drug Overdose Morbidity Epidemiologist , Injury and Behavioral Epidemiology Bureau*  
-James Padilla, MS, Tobacco Epidemiologist, Tobacco Use Prevention and Control Program*  
+Hayley Peterson, MPH, Drug Overdose Morbidity Epidemiologist, Injury and Behavioral Epidemiology Bureau*  
 James Farmer, MPH, Director, Office of School and Adolescent Health*  
+Dylan Pell, MPH, MSW, Mental Health Epidemiologist, Injury and Behavioral Epidemiology Bureau*
+ 
 
 ### NEW MEXICO PUBLIC EDUCATION DEPARTMENT {.unlisted .unnumbered}
-Ryan Stewart, Ed.L.D., Secretary of Education  
-Katarina Sandoval, Ed.M., Deputy Secretary of Academic Engagement and Student Success  
-Greg Frostad, Director, Safe and Healthy Schools   
-Anne Marlow-Geter, Safe and Healthy Schools Deputy Director
+Kurt Steinhaus, Ed.D., Secretary of Education  
+Anne Marlow-Geter, Director, Safe & Healthy Schools Bureau (interim)
+
 
 ### UNIVERSITY OF NEW MEXICO DIVISION FOR PREVENTION AND POPULATION SCIENCES, HEALTH EVALUATION AND RESEARCH TEAM  {.unlisted .unnumbered}
-Theresa H Cruz, PhD, Research Associate Professor*  
-Courtney FitzGerald, MSSW, LMSW, MPH, Associate Scientist III*  
-Robyn Viera, MA, Scientific Research Manager
+M. Rebecca Kilburn, PhD, Research Professor*  
+Courtney FitzGerald, MSSW, LMSW, MPH, Senior Research Scientist II*  
+Robyn Viera, MA, Scientific Research Manager*  
+Edward Davis, Statistician
+
 
 ### ALBUQUERQUE AREA SOUTHWEST TRIBAL EPIDEMIOLOGY CENTER {.unlisted .unnumbered} 
-Kevin English, DrPh, MPH, DirectorCarolyn Parshall, MPH, Epidemiologist*  
-Judith Espinoza, MPH, Epidemiologist*  
-Ophelia Spencer, Tribal Survey Coordinator  
-Ali Anderson, BS, CDC Public Health Associate*
+Kevin English, DrPh, MPH, Director  
+Carolyn Parshall, MPH, Epidemiologist*  
+Cynthia Garcia, BS, CDC Public Health Associate*  
+
 
 ### NEW MEXICO HUMAN SERVICES DEPARTMENT, BEHAVIORAL HEALTH SERVICES DIVISION {.unlisted .unnumbered} 
-Karen Cheman, MPH, Prevention Operations Manager, Office of Substance Abuse Prevention*  
+Neal Bowen, PhD, Director, Behavioral Health Services Division  
+Jacqueline Nielsen, Deputy Director, Behavioral Health Services Division  
+Antonette Tone Silva-Jose, Prevention Operations Manager, Office of Substance Abuse Prevention
+ 
 
 &nbsp;  
 The NM Department of Health receives support for the NM YRRS from the Centers for Disease Control and Prevention in cooperation through Grant number  5 NU87PS004314-03-00.
 
 \newpage  
 &nbsp;                           
-\newpage  
+ 
 \tableofcontents
 
 
@@ -824,37 +831,30 @@ Participation_table
 \raggedright
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 Table_function <- function(varlist) {
+  
+  Data_frame_values <- data.frame(matrix(ncol=9,nrow=length(varlist)))
+  colnames(Data_frame_values) <- c("Indicator", "cnty_Value", "cnty_ci_l", "cnty_ci_u", "cnty_ci", "NM_Value", "NM_ci_l", "NM_ci_u", "NM_ci")
+  ########################################################
 
-  Indicator <- c(rep("a",length(varlist)))
-  cnty_Value <- c(rep(0,length(varlist)))
-  cnty_ci_l <- c(rep(0,length(varlist)))
-  cnty_ci_u <- c(rep(0,length(varlist)))
-  cnty_ci <- c(rep("a",length(varlist)))
-  NM_Value <- c(rep(0,length(varlist)))
-  NM_ci_l <- c(rep(0,length(varlist)))
-  NM_ci_u <- c(rep(0,length(varlist)))
-  NM_ci <- c(rep("a",length(varlist)))
-
-
-  i=1
   for(i in 1:length(varlist)){
+    
     varname <- varlist[i]
-    Indicator[i] <- var_label(yrbss_hs_NM[varname][[1]])
-
-
-    NM_Value[i] <- round((svymean(yrbss_hs_NM[varname], yrrs_nm, na.rm=T))[1] *100, 1)
-    NM_ci_l[i] <- round((confint(svymean(yrbss_hs_NM[varname], yrrs_nm, na.rm=T)))[1] *100, 1)
-    NM_ci_u[i] <- round((confint(svymean(yrbss_hs_NM[varname], yrrs_nm, na.rm=T)))[2] *100, 1)
-    NM_ci[i] <- paste0("(",NM_ci_l[i], "-",NM_ci_u[i],")")
-
-    cnty_Value[i] <- round((svyby(as.formula( paste0("~", varname)), ~cntytxt=={params$counties}, yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T))[2,2] *100, 1)
-    cnty_ci_l[i] <- round((svyby(as.formula( paste0("~", varname)), ~cntytxt=={params$counties}, yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T))[2,3] *100, 1)
-    cnty_ci_u[i] <- round((svyby(as.formula( paste0("~", varname)), ~cntytxt=={params$counties}, yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T))[2,4] *100, 1)
-    cnty_ci[i] <- paste0("(",format(cnty_ci_l[i], nsmall=1), "-",format(cnty_ci_u[i], nsmall=1),")")
+    Data_frame_values[i,1] <- var_label(yrbss_NM[varname][[1]])
+    
+    #County level values
+    Data_frame_values[i,2:4] <- round((svyby(as.formula( paste0("~", varname)), ~cntytxt=={params$counties}, yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T))[2,2:4] *100, 1)
+    Data_frame_values[i,5] <- paste0("(",Data_frame_values[i,3], "-",Data_frame_values[i,4],")")
+    
+    #NM level values
+    Data_frame_values[i,6] <- round((svymean(yrbss_NM[varname], yrrs_nm, na.rm=T))[1] *100, 1)
+    Data_frame_values[i,7:8] <- round((confint(svymean(yrbss_NM[varname], yrrs_nm, na.rm=T)))[1:2] *100, 1)
+    Data_frame_values[i,9] <- paste0("(",Data_frame_values[i,7], "-",Data_frame_values[i,8],")")
+    
+    
   }
 
-  #Indicator <- factor(Indicator, levels = var_label(yrbss_hs_NM[varlist]))
-  Data_frame_values <- data.frame(Indicator, cnty_Value, cnty_ci, NM_Value, NM_ci)
+  Data_frame_values$Indicator <- factor(Data_frame_values$Indicator, levels = var_label(yrbss_NM[varlist]))
+  #Data_frame_values <- data.frame(Indicator, cnty_Value, cnty_ci, NM_Value, NM_ci)
 
   return(Data_frame_values)
 }
@@ -868,7 +868,7 @@ table_bb <- Table_function(c("helmet", "seatbelt", "rodedui", "dui", "maridrv", 
 header_groups = c(1,2,2)
 names(header_groups) = c(" ", paste0({params$counties}, " County"), "New Mexico")
 
-kbl(table_bb, booktabs = T, align = NULL, position = 'b', row.names = FALSE, col.names = c("Indicator", "%", "(95% CI)", "%", "(95% CI)")) %>%
+kbl(table_bb[,c(1,2,5,6,9)], booktabs = T, align = NULL, position = 'b', row.names = FALSE, col.names = c("Indicator", "%", "(95% CI)", "%", "(95% CI)")) %>%
   #kable_styling(latex_options =  "striped") %>%
   add_header_above(header_groups) %>%
   pack_rows( index = c("Unintentional Injuries" = 6, "Violence" = 8, "Bullying" = 3, "Mental health"=7,
@@ -899,7 +899,6 @@ Physical Activity, Body Weight, and Nutrition" = 10, "Sexual behavior" = 6))
 
 &nbsp;
 
-\newpage
 
 
 &nbsp;
@@ -1427,7 +1426,7 @@ barplot_resiliency("fight", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3c
 
 \newpage
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center",cache.rebuild=TRUE}
 barplot_resiliency("skipsafe", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
 ```
 #### How to read this chart: {.unlisted .unnumbered}
@@ -1437,7 +1436,7 @@ barplot_resiliency("skipsafe", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "
  
 \newpage
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center",cache.rebuild=TRUE}
 barplot_resiliency("bully", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
 ```
 #### How to read this chart: {.unlisted .unnumbered}
@@ -1447,7 +1446,7 @@ barplot_resiliency("bully", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3c
  
 \newpage
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center",cache.rebuild=TRUE}
 barplot_resiliency("sad", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
 ```
 #### How to read this chart: {.unlisted .unnumbered}
@@ -1457,7 +1456,7 @@ barplot_resiliency("sad", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgr
  
 \newpage
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center",cache.rebuild=TRUE}
 barplot_resiliency("suiatt", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
 ```
 #### How to read this chart: {.unlisted .unnumbered}
@@ -1467,7 +1466,7 @@ barplot_resiliency("suiatt", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3
  
 \newpage
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center",cache.rebuild=TRUE}
 barplot_resiliency("vape30", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
 ```
 #### How to read this chart: {.unlisted .unnumbered}
@@ -1477,7 +1476,7 @@ barplot_resiliency("vape30", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3
  
 \newpage
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center",cache.rebuild=TRUE}
 barplot_resiliency("binge54", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
 ```
 #### How to read this chart: {.unlisted .unnumbered}
@@ -1487,7 +1486,7 @@ barplot_resiliency("binge54", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r
  
 \newpage
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center",cache.rebuild=TRUE}
 barplot_resiliency("dui", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
 ```
 #### How to read this chart: {.unlisted .unnumbered}
@@ -1497,17 +1496,8 @@ barplot_resiliency("dui", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgr
  
 \newpage
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
-barplot_resiliency("dui", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
-```
-#### How to read this chart: {.unlisted .unnumbered}
- * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% drove when they had been drinking.
- * Of those who said it was 'A little but or pretty much true' that a parent or other adult was interested in their school work, `r risk_props[2]`% drove when they had been drinking.
- * Of those who said it was 'Very much true' that a parent or other adult was interested in their school work, `r risk_props[3]`% drove when they had been drinking.
- 
-\newpage
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center",cache.rebuild=TRUE}
 barplot_resiliency("rxpain30", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
 ```
 #### How to read this chart: {.unlisted .unnumbered}
@@ -1517,7 +1507,7 @@ barplot_resiliency("rxpain30", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "
  
 \newpage
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center",cache.rebuild=TRUE}
 barplot_resiliency("sexact", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
 ```
 #### How to read this chart: {.unlisted .unnumbered}
@@ -1527,7 +1517,7 @@ barplot_resiliency("sexact", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3
  
 \newpage
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center",cache.rebuild=TRUE}
 barplot_resiliency("bodywt2", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
 ```
 #### How to read this chart: {.unlisted .unnumbered}
@@ -1537,7 +1527,7 @@ barplot_resiliency("bodywt2", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r
  
 \newpage
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center"}
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center",cache.rebuild=TRUE}
 barplot_resiliency("homeless", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
 ```
 #### How to read this chart: {.unlisted .unnumbered}
@@ -1563,6 +1553,7 @@ barplot_resiliency("homeless", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
 #yrbss_hs_cnty <- subset(yrrs2019, cntytxt=={params$counties})
+library(readxl)
 Questionnaire <- read_excel("Questionnaires_HS-MS_2021.xlsx", 
     sheet = "HighSchool_2021_Questionnaire")
 
@@ -1636,5 +1627,532 @@ Appendix_A <- kbl(Personal_Info, booktabs = T, align = c('l', 'l', 'r'), positio
 Appendix_A
 
 ```
+
+\newpage
  
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+colnames(Questionnaire)[7] <- "Q_Text"
+colnames(Questionnaire)[8] <- "qnvar"
+colnames(Questionnaire)[9] <- "Weighted %"
+Questionnaire[10] <- NA
+colnames(Questionnaire)[10] <- "95% Confidence Interval"
+
+Questionnaire$Question <- Questionnaire$`2021 Question Number1`
+# Questionnaire$Response <- Questionnaire$`2021 Question Number2` - Questionnaire$Question
+# Questionnaire$Response <- as.integer(Questionnaire$Response*10)
+
+Questionnaire <- Questionnaire %>% mutate(
+  qnvar = case_when(!is.na(Question) ~ paste0("v", Question)),
+  Response = (`2021 Question Number2` - Question)*10,
+  Q_Text = case_when(
+    `Row Type` == "Question" ~ paste0(Question, ". ", Q_Text),
+    `Row Type` != "Question" ~ Q_Text
+  )
+)
+
+#Questionnaire$qnvar[(Questionnaire$qnvar=="vNA")] <- NA
+
+colnames(Questionnaire)[7] <- " "
+
+#Iterate through list of questions to add new columns with weighted means and confidence intervals
+#Stopping at row 764 rather than nrow(Questionnaire) due to empty rows.
+for (i in 30:764){
+  if(Questionnaire[i, 2]!="Response" || is.na(Questionnaire[i,8])){
+    next
+  }
+  qnvar = Questionnaire[i, 8]
+  Response <- round(Questionnaire[i, 11], 1)
+  Questionnaire[i, 9] <- round((svyby(as.formula( paste0("~(", qnvar, "==", Response,")")), ~cntytxt=={params$counties}, yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T))[2,2] *100, 1)
+  
+  ci_l <- round((svyby(as.formula( paste0("~(", qnvar, "==", Response,")")), ~cntytxt=={params$counties}, yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T))[2,3] *100, 1)
+  ci_u <- round((svyby(as.formula( paste0("~(", qnvar, "==", Response,")")), ~cntytxt=={params$counties}, yrrs_cnty, svyciprop, vartype ="ci", df = Design_df, na.rm=T))[2,4] *100, 1)
+  Questionnaire[i, 10] <- paste0("(",format(ci_l, nsmall=1), "-",format(ci_u, nsmall=1),")")
+  
+}
+
+
+options(knitr.kable.NA = '')
+#Indent rows with responses and bolden rows without (which will be headers or questions)
+Appendix_B <- kbl(tibble(Questionnaire[30:764,c(7,9,10)]), align = c('l','r','r'), longtable = TRUE, booktabs = TRUE)
+for (i in 30:764){
+  if(Questionnaire[i, 2]=="Response"){
+    Appendix_B <- add_indent(Appendix_B, i-29)
+    #print(paste("row", i, "is a response"))
+  }
+  else{
+    Appendix_B <- row_spec(Appendix_B, i-29, bold=TRUE, underline=FALSE)
+    #print(paste("row", i, "is not a response"))
+  }
+}
+
+Appendix_B %>% column_spec(1, width = "11cm") 
+
+```
  
+\newpage
+
+# Appendix B: About this Report
+
+|   This report contains results from the 2021 New Mexico High School Youth Risk and Resiliency Survey (YRRS). The YRRS is a statewide survey of public school students in middle schools and high schools throughout New Mexico.  Statewide and county level results are available at https://www.YouthRisk.org and https://www.nmhealth.org/go/youth.  In addition, school district reports have been prepared for each participating school district and have been distributed to school district offices. School districts are encouraged to reproduce and share these reports with community groups concerned with prevention and health promotion.  School district level results will not be released without express permission of the school district superintendent. Forms for requesting school district data are available at https://www.YouthRisk.org. These documents comprise a useful tool for those working on youth-related issues at the state and local level.
+
+|   The 2021 YRRS was conducted by selecting two separate samples of student respondents. One sample was selected using a methodology that is highly comparable to that used by other states conducting Youth Risk Behavior Surveys (YRBS), and to the national YRBS methodology. For most reports of YRRS state-level data, that is the sample used to produce results. However, data from that sample cannot be used to represent sub-state areas such as counties or school districts.  In order to represent smaller geographical areas, a separate sample was drawn. This second sample allows generation of estimates for sub-state areas within New Mexico. It is this second sample that was used to generate results for this report. Because of this, rates reported for New Mexico may vary slightly from rates in other reports of state-level YRRS data. 
+
+|   The YRRS is organized into two major content areas: risk behaviors and protective (resiliency) factors.  Risk behaviors include behaviors associated with unintentional injury, violence, mental health, tobacco use, alcohol use, drug use, sexual activity, physical activity, and nutrition.  Protective or resiliency factors are measures of the positive and supportive relationships, experiences, activities, resources and values that encourage healthy youth development.  Resiliency factors and related traits include caring and supportive relationships in the family, school, community and with peers; boundaries set by the family and school; positive peer support; meaningful participation and constructive use of time in school and outside of school.
+&nbsp;
+
+# Using this Report {.unlisted .unnumbered}
+
+|   The main section of this report consists of a series of charts illustrating results from the 2019 YRRS.  Risk behaviors are organized into modules by topic area, with each module starting with one or more line charts demonstrating change in behaviors over the years of the survey. The line charts are followed by a set of bar charts showing a comparison of risk behaviors between the state and the county or school district, a comparison between boys and girls within the county or school district, and a comparison by grade level within the county or school district. For counties or school districts with very few respondents or that haven't participated consistently in the YRRS, some of these charts may be omitted.
+
+|   The charts about risk behaviors are followed by two sets of charts about resiliency/protective factors. The first of these two sections compares the state rate for each resiliency factor to the  county or school district rate.  The second section illustrates the relationship between risk behaviors and protective factors. This section consists of a set of bar charts, each showing the prevalence of a particular risk behavior for students with varying levels of selected protective factors.
+
+# Understanding the Charts - and a Word about Error Bars {.unlisted .unnumbered}
+
+|   The bar charts in this report present the percentage of students who reported engaging in risk behaviors or who reported having protective factors.  The height of the bars conveys the percentage of students reporting each trait, and provides a quick visual comparison between different groups of students reporting that trait.  A label for each bar presents the actual percentage of students who reported each trait.
+
+|   Because of the high cost and logistical complications involved in conducting a statewide survey, the YRRS was administered to a sample of students, rather than to every single student in each school district.  Because YRRS data are from a sample of students, and not the entire student body, the results in this report are estimates.  As with all estimates, there is some uncertainty associated with each of these results.  On the charts in this report, this degree of uncertainty is represented by an error bar (confidence interval).  The error bar is the thin 'I' shaped line that extends above and below the end of each bar in a chart.  One of the major influences on the size of the confidence interval or error bar is the number of participants in the survey.  In general, this means that with more students participating in the survey, there will be a higher degree of confidence in the results (i.e., error bars will be smaller).
+
+|   Interpretation of error bars is illustrated in the charts below.  This chart compares the New Mexico rates of binge drinking and cocaine use to the United States rates for 2019.  The chart shows that the rate of current binge drinking was 12.1% in New Mexico and 13.7% in the United States. The error bar for the estimate of binge drinking among New Mexico students extends from 12.1% to 13.9%.  This means that we are confident that the actual percentage of binge drinkers among New Mexico students was between 12.1% and 13.9%.  The error bar for the estimate of binge drinking in the US extends from 12.3% to 15.2%, meaning that we are confident that the actual percentage of binge drinkers in the United States was between 12.3% and 15.2%. 
+
+![](Appendix_B_fig1.png){width=6in}
+
+|   How does knowing the upper and lower limits of our error bars help us?  While it appears at first glance that New Mexico had a lower prevalence of binge drinking than the United States (12.1% vs. 13.7%), a closer look at the error bars shows a more complicated picture.  The error bars for the New Mexico estimate (12.1%–13.9%) and the US estimate (12.3%-15.2%) overlap.  Because of this overlap, we do not have a high degree of confidence that the prevalence of binge drinking in New Mexico was actually different from the prevalence in the United States.  In other words, the difference between the prevalence of binge drinking in New Mexico and the United States was not statistically significant.
+
+|   For cocaine use it appears that New Mexico had a higher prevalence than the United States (8.4% vs. 3.9%).  The error bar for New Mexico extends from 7.2% to 9.8%, and the error bar for the United States extends from 3.2% to 4.7%.  Because the higher bound of the US error bar (4.7%) is lower than the lower bound of the NM error bar (7.2%), these error bars do not overlap.  For lifetime cocaine use, we are confident in saying that the New Mexico prevalence was higher than the US prevalence.  In other words, the difference between the prevalence of cocaine use in New Mexico and the United States was a statistically significant difference.
+
+![](Appendix_B_fig2.png){width=6in}
+
+|   For some small areas, error bars have been removed from this report.  With small populations, the number of students sampled can approach the total student population.  In these cases, error bars would have limited meaning because with a high percentage of students surveyed, there is less uncertainty around the estimates than error bars suggest.
+
+\newpage
+
+# Appendix C: Risk Behavior and Resiliency/Protective Factor Definitions
+
+
+__Injury__  
+Rarely or never wore a bicycle helmet  
+
+> Among those who reported riding a bicycle, answered 'Never' or 'Rarely' to the question, _When you rode a bicycle during the past 12 months, how often did you wear a helmet?_   
+
+Rarely or never wore a Seatbelt  
+
+> Answered 'Never' or 'Rarely' to the question, _How often do you wear a seat belt when riding in a car driven by someone else?_  
+
+Rode with drinking driver  
+
+> Answered '1 time' or more to the question, _During the past 30 days, how many times did you ride in a car or other vehicle driven by someone who had been drinking alcohol?_  
+
+Drinking and driving	
+
+> Among those who drove a car or other vehicle, answered '1 day' or more to the question, _During the past 30 days, how many times did you drive a car or other vehicle when you had been drinking alcohol?_ 
+
+Marijuana use and driving  
+
+> Among those who drove a car or other vehicle, answered '1 time' or more to the question, _During the past 30 days,  how many times did you drive a car or other vehicle when you had been using marijuana (also called pot, weed, or cannabis)?_
+
+Texted or e-mailed while driving
+
+> Among those who drove a car or other vehicle, answered '1 time' or more to the question, _During the past 30 days, how many times did you text or e-mail while driving a car or other vehicle?_
+
+Has a gun in the home
+
+> Answered 'Yes' or more to the question, _Is there a gun in your home?_
+
+Carried a gun		
+
+> Answered '1 day' or more to the question, _During the past 12 months, on how many days did you carry a gun? (Do not count the days when you carried a gun only for hunting or for a sport, such as target shooting.)_ 
+
+__Violence-Related Behaviors__						
+In a physical fight							
+
+> Answered '1 time' or more to the question, _During the past 12 months, how many times were you in a physical fight?_
+
+Physical dating violence						
+
+> Answered '1 time' or more to the question, _During the past 12 months, how many times did someone you were dating or going out with physically hurt you on purpose? (Count such things as being hit, slammed into something, or injured with an object or weapon.)_
+
+Forced to do sexual things (sexual assault)		
+
+> Answered '1 time' or more to the question, _During the past 12 months, how many times did anyone force you to do sexual things that you did not want to do? (Count such things as kissing, touching, or being physically forced to have sexual intercourse.)_
+
+Ever forced to have sexual intercourse					
+
+> Answered 'Yes' to the question, _Have you ever been physically forced to have sexual intercourse when you did not want to?_
+
+Electronically bullied							
+
+> Answered 'Yes' to the question, _During the past 12 months, have you ever been bullied on school property?_
+
+Bullied on school property
+
+> Answered 'Yes' to the question, _During the past 12 months, have you ever been electronically bullied? (Include being bullied through e-mail, chat rooms, instant messaging, Web sites, or texting.)_
+
+Teased or called names because of race/ethnicity
+
+> Answered 'Yes' to the question, _During the past 12 months, have you ever been the victim of teasing or name calling because of your race or ethnic background?_ 
+
+Carried a weapon on school property
+
+> Answered '1 day' or more to the question, _During the past 30 days, on how many 
+days did you carry a weapon such as a gun, knife, or club on school property?_
+
+Skipped school due to safety concerns					
+
+> Answered '1day' or more to the question, _During the past 30 days, on how many days did you not go to school because you felt you would be unsafe at school or on your way to or from school?_
+
+In a physical fight on school property					
+
+> Answered '1 time' or more to the question, _During the past 12 months, how many times were you in a physical fight on school property?_
+
+__Mental Health and Suicidal Behaviors__					
+Non-suicidal self injury	
+
+> Answered '1 time' or more to the question, _During the past 12 months, how many times did you do something to purposely hurt yourself without wanting to die, such as cutting or burning yourself on purpose?_
+
+Feelings of sadness or hopelessness	
+
+> Answered 'Most of the time' or 'Always' to the question, _During the past 30 days, how often was your mental health not good? (Poor mental health includes stress, anxiety, and depression.)_
+
+Frequent mental distress
+
+> Answered 'Yes' to the question, _During the past 12 months, did you ever feel so sad or hopeless almost every day for two weeks or more in a row that you stopped doing some usual activities?_
+
+Seriously considered suicide
+
+> Answered 'Yes' to the question, _During the past 12 months, did you ever seriously consider attempting suicide?_
+
+Made a suicide plan
+
+> Answered 'Yes' to the question, _During the past 12 months, did you make a plan about how you would attempt suicide?_
+
+Attempted suicide	
+
+> Answered '1 time' or more to the question, _During the past 12 months, how many times did you actually attempt suicide?_
+
+Suicide attempt with injury
+
+> Answered 'Yes' to the question, _If you attempted suicide during the past 12 months, did any attempt result in an injury, poisoning, or overdose that had to be treated by a doctor or nurse?_
+
+__Tobacco Use: Cigarettes__						
+Ever smoked cigarettes						
+
+> Answered 'Yes' to the question, _Have you ever tried cigarette smoking, even one or two puffs?_
+
+Smoked cigarettes before age 13
+
+> Answered '11 or 12 years old' or younger to the question, _How old were you when you first tried cigarette smoking, even one or two puffs?_
+
+Current cigarette smoking (Smoked at least one cigarette in past 30 days)	
+
+> Answered '1 or 2 days' or more to the question, _During the past 30 days, on how many days did you smoke cigarettes?_
+
+Frequent cigarette smoking (Smoked at least 11 cigarettes per day)
+
+> Answered '20 to 29 days' or more to the question, _During the past 30 days, on how many days did you smoke cigarettes?_
+
+Daily cigarette smoking
+
+> Answered '30 days' to the question,  _How old were you when you first tried cigarette smoking, even one or two puffs?_
+
+__Tobacco: Other Use and Exposure__					
+Current cigar use							
+
+>Answered '1 or 2 days' or more to the question, _During the past 30 days, on how many days did you smoke cigars, cigarillos, or little cigars?_
+
+Current spit tobacco use
+
+> Answered '1 or 2 days' or more to the question, _During the past 30 days, on how many days did you use chewing tobacco, snuff, or dip, such as Redman, Levi Garrett, Beechnut, Skoal, Skoal Bandits, or Copenhagen?_
+
+Current e-cigarette use						
+
+> Answered '1 or 2 days' or more to the question, _During the past 30 days, on how many days did you use an electronic vapor product?_
+
+Ever used e-cigarettes
+
+> Answered 'Yes' to the question, _Have you ever used an electronic vapor product?_
+
+Current tobacco use (any of five forms of tobacco)
+
+> Any form of tobacco use in the past 30 days (smoked cigarettes or cigars, smoked tobacco with a hookah, used electronic vapor products, or used spit tobacco).
+
+Exposed to second hand cigarette smoke
+
+> Answered '1 or 2 days' or more to the question, _During the past 7 days, on how many days were you in the same room with someone who was smoking cigarettes?_
+
+__Alcohol__								
+Ever drank alcohol
+
+> Gave any response other than 'I have never had a drink of alcohol other than a few sips' to the question, _How old were you when you had your first drink of alcohol other than a few sips?_
+
+Current drinking
+
+> Answered '1 or 2 days' or more to the question, _During the past 30 days, on how many days did you have at least one drink of alcohol?_
+
+Binge drinking
+
+> Answered '1 day' or more to the question, _During the past 30 days, on how many days did you have 4 or more drinks of alcohol in a row (if you are female) or 5 or more drinks of alcohol in a row (if you are male)?_
+
+High intensity binge drinking	
+
+> Answered '10 or more drinks' or more to the question, _During the past 30 days, what is the largest number of alcoholic drinks you had in a row, that is, within a couple of hours?_
+
+First drink before age 13
+
+> Answered '11 or 12 years old or younger' to the question, _How old were you when you had your first drink of alcohol other than a few sips?_
+
+Rode with drinking driver						
+
+>Answered '1 time' or more to the question, _During the past 30 days, how many times did you ride in a car or other vehicle driven by someone who had been drinking alcohol?_
+
+Drinking and driving
+
+> Among those who drove a car, answered '1 day' or more to the question, _During the past 30 days, how many times did you drive a car or other vehicle when you had been drinking alcohol?_
+
+__Marijuana Use__							
+Ever used marijuana						
+
+> Gave any response other than 'I have never tried marijuana' to the question, _How old were you when you tried marijuana for the first time?_
+
+Current marijuana use		
+
+> Answered '1 or 2 times' or more to the question, _During the past 30 days, how many times did you use marijuana?_
+
+Tried marijuana before age 13
+
+> Answered '11 or 12 years old' or younger to the question, _How old were you when you tried marijuana for the first time?_
+
+__Other Drug Use__							
+Current improper use of pain medication
+
+> Answered '1 or 2 times' or more to the question, _During the past 30 days, how many times did you take prescription pain medicine without a doctor’s prescription or differently than how a doctor told you to use it?_
+
+Current inhalant use
+
+> Answered '1 or 2 times' or more to the question, _During the past 30 days, how many times have you sniffed glue, breathed the contents of aerosol spray cans, or inhaled any paints or sprays to get high?_
+
+Current cocaine use	
+
+> Answered '1 or 2 times' or more to the question, _During the past 30 days, how many times did you use any form of cocaine, including powder, crack, or freebase?_
+
+Current ecstasy use							
+
+> Answered '1 or 2 times' or more to the question, _During the past 30 days, how many times have you used ecstasy?_
+
+Current methamphetamine use					
+
+> Answered '1 or 2 times' or more to the question, _During the past 30 days, how many times have you used methamphetamines (also called speed, crystal, crank, or ice)?_
+
+Current heroin use
+
+> Answered '1 or 2 times' or more to the question, _During the past 30 days, how many times have you used heroin (also called smack, junk, or China White)?_
+
+Lifetime improper use of pain medication	
+
+> Answered '1 or 2 times' or more to the question, _During your life, how many times have you taken prescription pain medicine without a doctor’s prescription or differently than how a doctor told you to use it?_
+
+Lifetime cocaine use (Ever used in lifetime)
+
+> Answered '1 or 2 times' or more to the question, _During your life, how many times did you use any form of cocaine, including powder, crack, or freebase?_
+
+Lifetime ecstasy use (Ever used in lifetime)
+
+> Answered '1 or 2 times' or more to the question, _During your life, how many times have you used ecstasy?_
+
+Lifetime methamphetamine use (Ever used in lifetime)  
+
+> Answered '1 or 2 times' or more to the question, _During your life, how many times have you used methamphetamines (also called speed, crystal, crank, or ice)?_
+
+Lifetime heroin use (Ever used in lifetime)	
+
+> Answered '1 or 2 times' or more to the question, _During your life, how many times have you used heroin (also called smack, junk, or China White)?_
+
+Injection drug use							
+
+> Answered '1 or 2 times' or more to the question, _During your life, how many times have you used a needle to inject any illegal drug into your body?_
+
+Offered or sold drugs on school property
+
+> Answered 'Yes' to the question, _During the past 12 months, has anyone offered, sold, or given you an illegal drug on school property?_
+
+__Sexual Activity__							
+Ever had sexual intercourse	
+
+> Gave any response other than 'I have never had sexual intercourse' to the question, _How old were you when you had sexual intercourse for the first time?_
+
+Sexually active		
+
+> Respondent reported having sexual intercourse within the previous 3 months.  Answered '1 person' or more to the question, _During the past 3 months, with how many people did you have sexual intercourse?_
+
+Sexual intercourse before age 13
+
+> Answered '11 or 12 years old' or younger to the question, _How old were you when you had sexual intercourse for the first time?_
+
+Four+ sexual partners in lifetime		
+
+> Answered '4 people' or more to the question, _During your life, with how many people have you had sexual intercourse?(among all students or among sexually active students, as noted)_
+
+Alcohol or drugs before sexual intercourse
+
+> Answered 'Yes' to the question, _Did you drink alcohol or use drugs before you had sexual intercourse the last time?_
+
+Used condom 	
+
+> Answered 'Yes' to the question, _The last time you had sexual intercourse, did you or your partner use a condom?_  
+AMONG those who reported being "Sexually active" (see above)
+
+Did not use condom	
+
+> Answered 'No' to the question, _The last time you had sexual intercourse, did you or your partner use a condom?_  
+AMONG those who reported being "Sexually active" (see above)
+
+Reliable birth control method		
+
+> Answered 'Birth control pills', 'An IUD (such as Mirena or ParaGard) or implant (such as Implanon or Nexplanon)', or 'A shot (such as Depo-Provera), patch (such as Ortho Evra), or birth control ring (such as NuvaRing)' to the question, _The last time you had sexual intercourse, what one method did you or your partner use to prevent pregnancy?_   
+AMONG those who reported being "Sexually active" (see above)
+
+Used both a condom and effective birth control				
+
+>Reported using effective birth control (see above)  
+	     AND  
+	used a condom at last sex (see above)  
+	     AMONG those who  
+	reported being "Sexually active" (see above)
+	
+Sex of sexual contact	
+
+> Response to the question, _During your life, with whom have you had sexual contact?_
+
+Lesbian, gay, or bisexual		
+
+> Answered 'Gay or lesbian' or 'Bisexual' to the question, _Which of the following best describes you?_
+
+__Nutrition__								
+Five servings of fruits and/or vegetables daily		
+
+> Reported consuming five or more daily servings of fruit juice, fruit, green salad, potatoes, carrots, or other vegetables over the past 7 days.
+
+Ate three or more vegetables per day
+
+> Reported consuming 3 or more daily servings of green salad, potatoes, carrots, or other vegetables.
+
+Daily soda	
+
+> Answered '1 time per day' or more to the question, _During the past 7 days, how many times did you drink a can, bottle, or glass of soda or pop, such as Coke, Pepsi, or Sprite? (Do not count diet soda or diet pop.)_
+
+Three or more sodas daily
+
+> Answered '3 times per day' or more to the question, _During the past 7 days, how many times did you drink a can, bottle, or glass of soda or pop, such as Coke, Pepsi, or Sprite? (Do not count diet soda or diet pop.)_
+
+Ate breakfast daily	
+
+> Answered '7 days' to the question, _During the past 7 days, on how many days did you eat breakfast?_
+
+Never ate breakfast		
+
+> Answered '0 days' to the question, _During the past 7 days, on how many days did you eat breakfast?_
+
+__Physical Activity__							
+No days of physical activity per week
+
+> Answered '0 days' to the question, _During the past 7 days, on how many days were you physically active for a total of at least 60 minutes per day? (Add up all the time you spent in any kind of physical activity that increased your heart rate and made you breathe hard some of the time.)_
+
+Five days of physical activity per week		
+
+> Answered '5 days' or more to the question, _During the past 7 days, on how many days were you physically active for a total of at least 60 minutes per day? (Add up all the time you spent in any kind of physical activity that increased your heart rate and made you breathe hard some of the time.)_
+
+Daily physical activity		
+
+> Answered '7 days' to the question, _During the past 7 days, on how many days were you physically active for a total of at least 60 minutes per day? (Add up all the time you spent in any kind of physical activity that increased your heart rate and made you breathe hard some of the time.)_
+
+Watched TV three or more hours per day
+
+> Answered '3 hours per day' or more to the question, _On an average school day, how many hours do you watch TV?_
+
+Screen time three or more hours per day		
+
+> Answered '3 hours per day' or more to the question, _On an average school day, how many hours do you spend in front of a TV, computer, smart phone, or other electronic device watching shows or videos, playing games, accessing the Internet, or using social media (also called "screen time")? (Do not count time spent doing schoolwork.)_
+	
+No PE in school	
+
+> Answered '0 days' or more to the question, _In an average week when you are in school, on how many days do you go to physical education (PE) classes?_
+	
+Daily PE in school	
+
+> Answered '5 days' or more to the question, _In an average week when you are in school, on how many days do you go to physical education (PE) classes?_
+	
+Concussion							
+
+> Answered '1 time' or more to the question, _During the past 12 months, how many times did you have a concussion from playing a sport or being physically active?_
+	
+__Body Weight__							
+Note: Body Mass Index (BMI) was calculated from self reported height and weight.	
+Overweight		
+
+> Greater than or equal to the 85th national BMI percentile for age and sex, and less than the 95th national BMI for age and sex, based on historical data.
+	
+Obese	
+
+> Greater than or equal to the 95th national BMI percentile for age and sex, based on historical data.
+
+Overweight or obese	
+
+> Greater than or equal to the 85th national BMI percentile for age and sex, based on historical data.
+
+__Other Behaviors and Characteristics__	
+
+Physical disability or long-term health problem				
+
+> Answered 'Yes' the question, Do you have any physical disabilities or long-term health problems? (Long-term means 6-months or more)
+
+Ever diagnosed with asthma
+
+> Answered 'Yes' the question, _Has a doctor or nurse ever told you that you have asthma?_
+
+Current asthma							
+
+> Answered 'Yes' the question, _Has a doctor or nurse ever told you that you have asthma?_
+	     AND
+	Answered 'Yes' the question, _Do you still have asthma?_
+	
+Ever had an HIV test
+
+> Answered 'Yes' to the question, _Have you ever been tested for HIV, the virus that causes AIDS? (Do not count tests done if you donated blood.)_
+
+Saw a dentist in the last 12 months
+
+> Answered 'During the past 12 months' to the question, _When was the last time you saw a dentist for a check-up, exam, teeth cleaning, or other dental work?_
+
+Homeless (Unstable housing)	
+
+> Gave any response other than 'At home with my parents or guardians' to the question, _During the past 30 days, where did you usually sleep?_
+
+Kicked out, ran away, or were abandoned (Unaccompanied minor)	
+
+> Answered 'yes' to the question, _During the past 30 days, did you ever sleep away from your parents or guardians because you were kicked out, ran away, or were abandoned?_
+
+Speaks a non-English language					
+
+> Answered 'More than half the time but not all of the time' OR 'All of the time' to the question, _How often do you speak a language other than English at home?_
+	
+Born outside the USA						
+
+> Answered 'No' to the question, _Were you born in the USA?_
+	
+Gambled								
+
+> Answered '1 or 2 times' or more to the question, _During the past 12 months, how many times have you gambled on a sports team, gambled when playing cards or a dice game, played one of New Mexico's lottery games, gambled on the Internet, or bet on a game of personal skill such as pool or a video game?_
+	
+Transgender, genderqueer, or genderfluid					
+
+> Answered 'Yes, I am transgender, genderqueer, or genderfluid' or more to the question, _Do you consider yourself transgender, genderqueer, or genderfluid?_
+	
+Cisgender							
+
+> Answered 'No, I am not transgender, genderqueer, or genderfluid' or more to the question, _Do you consider yourself transgender, genderqueer, or genderfluid?_
+								
+	
+__Resiliency/Protective Factors__						
+	These questions are explained in context throughout the report.
+	
+\newpage
+![](nmyrrsLogo.png){width=6in}
