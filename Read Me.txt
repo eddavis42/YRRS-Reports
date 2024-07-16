@@ -1,0 +1,40 @@
+Instructions for rendering new reports:
+
+This folder should contain all of the files needed to render a new report, including the datasets, scripts, and image files. Note that the script takes upwards of a day to run in full, so I recommend setting it up in the morning or before leaving work and checking back on it the next day. 
+
+Double-check the power & sleep settings on your machine to make sure it doesn't automatically go to sleep or hibernation mode at any point during the rendering. Set both "When plugged in, turn off after" and "When plugged in, PC goes to sleep after" to "Never."
+
+To start, select the script to use. Open the R Markdown file titled "2021 County Report Sample.Rmd" to make a high school level, county report. The script will automatically import the other files it needs from this folder, so as you render it you must ensure the connection to the folder is not disrupted. Before making any changes to the parameters, go to "File," "Save as" and save the script as a new file in the SAME location, to ensure no changes get made to the original document. Something like "2021 County Report HS Torrance.Rmd", for example.
+
+I recommend either running the script directly from this folder, or copying the entire folder over to your machine if you are concerned about your connection to the shared drive being disrupted. 
+
+Next, edit the parameters to match the county for which you are creating a report. The excel file "Counties&Regions.xlsx" has a useful reference list for which counties fall into what regions, and their corresponding ID numbers. 
+Parameter = Excel file column
+counties = County
+cnty = c_county (county name with all lower case letters and no spaces, following a "c_")
+regions = Region ID
+region = region + "Public Health Region". Spell out the region, so "NW" should be "Northwest" for example.
+
+The columns "Gets own HS data" and  "Gets own MS data" are applicable for the risk resiliency tables in the section titled "Relationship Between Selected Risk Behaviors and Resiliency/Protective Factors." If you are making a report for a county which gets it's own data for the risk resiliency tables, go to that section and in the code chunks calling the function barplot_resiliency(), change the argument "level" from "region" to "county" in each function call. So for example,
+
+This function call will create a risk/resiliency table at the region level:
+
+barplot_resiliency("fight", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "region")
+
+This one will create the same table but at the county level:
+barplot_resiliency("fight", c("r3phobby","r3pconted", "r3fhelp", "r3fcare", "r3cgroup", "r3cgoodjob", "r3ccare", "r3sgroup", "r3srule", "r3ssuccess", "r3slisten", "r3hknow", "r3hsuccess", "r3hintscl"), "county")
+
+
+Next, with your script tab open in R Studio, click on "Session" from the top menu, then "Set Working Directory" from the drop-down menu, and then "To Source File Location." This ensures R checks the right folder for all the necessary files without needing to directly change any file paths. Once you are ready to render the new report, click on the small drop down arrow next to "Knit" towards the top of R Studio, and then click "Knit to PDF" from the drop down menu.
+
+
+Troubleshooting/debugging:
+
+Do NOT edit the script will it is being rendered or stop the rendering before it finishes, or these may disrupt the render. 
+
+R Studio may encounter a bug and stop rendering. The most common error message says "The system could not find the file specified." If this happens, close RStudio and reopen your RMD file, and then make sure the working directory is the source file location, and try rendering again. If the problem persists, you can delete the temporary files R created for the render to start fresh. This usually resolves the issue. There should be a new RMD file with the same name as your new one, but with the spaces replaced with hyphens (Example: "2021-County-Report-HS-Torrance.Rmd") You can delete that file before starting the render over. If the issue still persists, delete it again along with the new folders with the cache and files created. (Example: "2021-County-Report-HS-Torrance_cache" and "2021-County-Report-HS-Torrance_files"). Note that deleting the file and cache folders will delete all of the render work that has been completed, so only do so as a last resort. In fact, I would probably recommend just moving the folders elsewhere on your computer rather than permanently deleting them, so you can use their files if needed. The file folder will contain image files of the figures created for the report.
+
+Review/Quality Control:
+
+Once the render is complete, save the new PDF in the folder titled "Completed Reports" in the shared drive. Review it for any problems such as extra blank pages or graphs running off the edges of pages. Since R is able to cache the files created in the rendering process, a second render after the first one is completed will go much faster! You can go back into the script and change a code chunk and render it again, and R will only re-run the code in the code chunk that was changed.  If you encounter a graph which has gone off the bounds of the page, you can find the code chunk with the function call creating the graph and edit the parameters for that specific code chunk; "fig.height" and "fig.width".
+If you encounter an extra blank page, you can find the code for the part of the report in the script, and delete the line "\newpage" as necessary.

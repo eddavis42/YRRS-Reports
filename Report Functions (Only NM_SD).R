@@ -863,18 +863,18 @@ barplot_group <- function(varlist, graph_title, ms=FALSE, level="county"){
 
   county_plot <- county_plot + theme(text = element_text(size=21, inherit.blank=TRUE))
 
-  sex_plot <- barplot_sex(varlist, graph_title, grouped = TRUE, level=level)
-  sex_plot <- sex_plot + theme(text = element_text(size=21, inherit.blank=TRUE))
-
-  grade_plot <- barplot_grade(varlist, graph_title, grouped = TRUE,ms=ms, level=level)
-  grade_plot <- grade_plot + theme(text = element_text(size=21, inherit.blank=TRUE))
+  # sex_plot <- barplot_sex(varlist, graph_title, grouped = TRUE, level=level)
+  # sex_plot <- sex_plot + theme(text = element_text(size=21, inherit.blank=TRUE))
+  # 
+  # grade_plot <- barplot_grade(varlist, graph_title, grouped = TRUE,ms=ms, level=level)
+  # grade_plot <- grade_plot + theme(text = element_text(size=21, inherit.blank=TRUE))
 
   return(
-    ggpubr::ggarrange(
+    #ggpubr::ggarrange(
     county_plot
-    , sex_plot
-                         , grade_plot
-                        , ncol = 1, align = "v")
+    # , sex_plot
+    #                      , grade_plot
+    #                     , ncol = 1, align = "v")
     )
   
   

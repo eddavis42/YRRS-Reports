@@ -24,10 +24,10 @@ output:
 urlcolor: blue
 
 params:
-  counties: "Valencia"
-  cnty: "c_valencia"
-  regions: 3
-  region: "Metro Public Health Region"
+  counties: "Santa Fe"
+  cnty: "c_santa_fe"
+  regions: 2
+  region: "Northeast Public Health Region"
   year: "2021"
   
 ---
@@ -732,7 +732,7 @@ barplot_county_2(c("qn74", "qn75"), "Resiliency/Protective Factors with Peers an
 \newpage
 
 ```{r echo=FALSE, fig.height=13, fig.width=12, message=FALSE, warning=FALSE, cache.rebuild=TRUE}
-barplot_resiliency("fight", c("r377", "r376", "r375", "r374", "r373", "r372", "r371", "r370"), "region", ms=TRUE)
+barplot_resiliency("fight", c("r377", "r376", "r375", "r374", "r373", "r372", "r371", "r370"), "county", ms=TRUE)
 
 #risk_props
 ```
@@ -745,7 +745,7 @@ barplot_resiliency("fight", c("r377", "r376", "r375", "r374", "r373", "r372", "r
 \newpage
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center", cache.rebuild=TRUE}
-barplot_resiliency("weapon", c("r377", "r376", "r375", "r374", "r373", "r372", "r371", "r370"), "region", ms=TRUE)
+barplot_resiliency("weapon", c("r377", "r376", "r375", "r374", "r373", "r372", "r371", "r370"), "county", ms=TRUE)
 ```
 #### How to read this chart: {.unlisted .unnumbered}
  * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% ever carried a weapon such as a gun, knife, or club.
@@ -755,7 +755,7 @@ barplot_resiliency("weapon", c("r377", "r376", "r375", "r374", "r373", "r372", "
 \newpage
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center", cache.rebuild=TRUE}
-barplot_resiliency("consider", c("r377", "r376", "r375", "r374", "r373", "r372", "r371", "r370"), "region", ms=TRUE)
+barplot_resiliency("consider", c("r377", "r376", "r375", "r374", "r373", "r372", "r371", "r370"), "county", ms=TRUE)
 ```
 #### How to read this chart: {.unlisted .unnumbered}
  * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% ever seriously thought about killing themselves.
@@ -765,7 +765,7 @@ barplot_resiliency("consider", c("r377", "r376", "r375", "r374", "r373", "r372",
 \newpage
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center", cache.rebuild=TRUE}
-barplot_resiliency("suiatt", c("r377", "r376", "r375", "r374", "r373", "r372", "r371", "r370"), "region", ms=TRUE)
+barplot_resiliency("suiatt", c("r377", "r376", "r375", "r374", "r373", "r372", "r371", "r370"), "county", ms=TRUE)
 ```
 #### How to read this chart: {.unlisted .unnumbered}
  * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% ever tried to kill themselves.
@@ -775,7 +775,7 @@ barplot_resiliency("suiatt", c("r377", "r376", "r375", "r374", "r373", "r372", "
 \newpage
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center", cache.rebuild=TRUE}
-barplot_resiliency("cig30", c("r377", "r376", "r375", "r374", "r373", "r372", "r371", "r370"), "region", ms=TRUE)
+barplot_resiliency("cig30", c("r377", "r376", "r375", "r374", "r373", "r372", "r371", "r370"), "county", ms=TRUE)
 ```
 #### How to read this chart: {.unlisted .unnumbered}
  * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% smoked a cigarette in the last 30 days.
@@ -785,7 +785,7 @@ barplot_resiliency("cig30", c("r377", "r376", "r375", "r374", "r373", "r372", "r
 \newpage
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center", cache.rebuild=TRUE}
-barplot_resiliency("vape30", c("r377", "r376", "r375", "r374", "r373", "r372", "r371", "r370"), "region", ms=TRUE)
+barplot_resiliency("vape30", c("r377", "r376", "r375", "r374", "r373", "r372", "r371", "r370"), "county", ms=TRUE)
 ```
 #### How to read this chart: {.unlisted .unnumbered}
  * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% were current users of e-cigarettes/vapor products.
@@ -795,7 +795,7 @@ barplot_resiliency("vape30", c("r377", "r376", "r375", "r374", "r373", "r372", "
 \newpage
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center", cache.rebuild=TRUE}
-barplot_resiliency("drnkevr", c("r377", "r376", "r375", "r374", "r373", "r372", "r371", "r370"), "region", ms=TRUE)
+barplot_resiliency("drnkevr", c("r377", "r376", "r375", "r374", "r373", "r372", "r371", "r370"), "county", ms=TRUE)
 ```
 #### How to read this chart: {.unlisted .unnumbered}
  * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% ever drank alcohol.
@@ -805,7 +805,7 @@ barplot_resiliency("drnkevr", c("r377", "r376", "r375", "r374", "r373", "r372", 
 \newpage
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center", cache.rebuild=TRUE}
-barplot_resiliency("drnk30", c("r377", "r376", "r375", "r374", "r373", "r372", "r371", "r370"), "region", ms=TRUE)
+barplot_resiliency("drnk30", c("r377", "r376", "r375", "r374", "r373", "r372", "r371", "r370"), "county", ms=TRUE)
 ```
 #### How to read this chart: {.unlisted .unnumbered}
  * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% were current alcohol drinkers.
@@ -815,7 +815,7 @@ barplot_resiliency("drnk30", c("r377", "r376", "r375", "r374", "r373", "r372", "
 \newpage
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center", cache.rebuild=TRUE}
-barplot_resiliency("marievr", c("r377", "r376", "r375", "r374", "r373", "r372", "r371", "r370"), "region", ms=TRUE)
+barplot_resiliency("marievr", c("r377", "r376", "r375", "r374", "r373", "r372", "r371", "r370"), "county", ms=TRUE)
 ```
 #### How to read this chart: {.unlisted .unnumbered}
  * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% ever used marijuana.
@@ -825,7 +825,7 @@ barplot_resiliency("marievr", c("r377", "r376", "r375", "r374", "r373", "r372", 
 \newpage
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center", cache.rebuild=TRUE}
-barplot_resiliency("sexevr", c("r377", "r376", "r375", "r374", "r373", "r372", "r371", "r370"), "region", ms=TRUE)
+barplot_resiliency("sexevr", c("r377", "r376", "r375", "r374", "r373", "r372", "r371", "r370"), "county", ms=TRUE)
 ```
 #### How to read this chart: {.unlisted .unnumbered}
  * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% ever had sexual intercourse.
@@ -835,7 +835,7 @@ barplot_resiliency("sexevr", c("r377", "r376", "r375", "r374", "r373", "r372", "
 \newpage
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 13, fig.width=12, fig.align = "center", cache.rebuild=TRUE}
-barplot_resiliency("qnpa7day", c("r377", "r376", "r375", "r374", "r373", "r372", "r371", "r370"), "region", ms=TRUE)
+barplot_resiliency("qnpa7day", c("r377", "r376", "r375", "r374", "r373", "r372", "r371", "r370"), "county", ms=TRUE)
 ```
 #### How to read this chart: {.unlisted .unnumbered}
  * Of those who said it was 'Not true at all' that a parent or other adult was interested in their school work, `r risk_props[1]`% were sexually active.
